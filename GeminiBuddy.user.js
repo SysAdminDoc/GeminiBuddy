@@ -186,6 +186,219 @@
         renderAllPrompts();
         renderMiniPanel();
     }
+	
+	function addPromptButtonToPanel(promptData, container, categoryName, isMini = false) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'prompt-button-wrapper';
+        wrapper.dataset.promptId = promptData.id;
+
+        const btn = document.createElement('div');
+        btn.className = 'prompt-button';
+
+        if (isMini) {
+            btn.addEventListener('click', () => {
+                sendPromptToGemini(promptData, promptData.autoSend);
+                floatingMiniPanel.classList.remove('visible');
+            });
+        } else {
+            wrapper.draggable = true;
+            wrapper.addEventListener('dragstart', handleDragStart);
+            wrapper.addEventListener('dragover', handleDragOver);
+            wrapper.addEventListener('dragleave', handleDragLeave);
+            wrapper.addEventListener('drop', handleDrop);
+            wrapper.addEventListener('dragend', handleDragEnd);
+            btn.addEventListener('click', (e) => {
+                if (e.target.closest('.prompt-button-controls')) return;
+                sendPromptToGemini(promptData, promptData.autoSend);
+            });
+        }
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'prompt-button-name';
+        nameSpan.textContent = promptData.name;
+        btn.appendChild(nameSpan);
+
+        if (!isMini) {
+            const controls = document.createElement('div');
+            controls.className = 'prompt-button-controls';
+
+            const historyBtn = document.createElement('button');
+            historyBtn.title = "View History";
+            historyBtn.appendChild(icons.history.cloneNode(true));
+            historyBtn.addEventListener('click', () => showVersionHistory(promptData));
+            controls.appendChild(historyBtn);
+
+            if (settings.enableAIenhancer) {
+                const aiBtn = document.createElement('button');
+                aiBtn.title = "Enhance with AI";
+                aiBtn.classList.add('ai-btn');
+                aiBtn.appendChild(icons.sparkle.cloneNode(true));
+                aiBtn.addEventListener('click', () => showAIEnhancer(promptData));
+                controls.appendChild(aiBtn);
+            }
+            const pinBtn = document.createElement('button');
+            pinBtn.title = "Pin to Top"; pinBtn.classList.add('pin-btn');
+            const isPinned = promptData.pinned;
+            pinBtn.appendChild((isPinned ? icons.pin : icons.pinOutline).cloneNode(true));
+            if(isPinned) pinBtn.classList.add('pinned');
+            pinBtn.addEventListener('click', () => { promptData.pinned = !promptData.pinned; savePrompts(); renderAllPrompts(); });
+            const favoriteBtn = document.createElement('button');
+            favoriteBtn.title = "Favorite"; favoriteBtn.classList.add('favorite-btn');
+            const isFavorited = settings.favorites.includes(promptData.id);
+            favoriteBtn.appendChild((isFavorited ? icons.star : icons.starOutline).cloneNode(true));
+            if(isFavorited) favoriteBtn.classList.add('favorited');
+            favoriteBtn.addEventListener('click', () => {
+                if (settings.favorites.includes(promptData.id)) {
+                    settings.favorites = settings.favorites.filter(id => id !== promptData.id);
+                } else {
+                    settings.favorites.push(promptData.id);
+                }
+                saveSettings().then(renderAllPrompts);
+            });
+            const editBtn = document.createElement('button');
+            editBtn.title = "Edit"; editBtn.appendChild(icons.edit.cloneNode(true));
+            editBtn.addEventListener('click', () => {
+                let originalCategory = findPromptCategory(promptData.id);
+                showPromptForm(promptData, originalCategory);
+            });
+            const deleteBtn = document.createElement('button');
+            deleteBtn.title = "Delete"; deleteBtn.appendChild(icons.trash.cloneNode(true));
+            deleteBtn.addEventListener('click', () => {
+                if (confirm(`Are you sure you want to delete the prompt "${promptData.name}"? This will also delete its version history.`)) {
+                    Object.keys(currentPrompts).forEach(catName => {
+                        currentPrompts[catName] = currentPrompts[catName].filter(p => p.id !== promptData.id);
+                        if (currentPrompts[catName].length === 0 && catName !== "Favorites") {
+                            delete currentPrompts[catName];
+                            settings.groupOrder = settings.groupOrder.filter(g => g !== catName);
+                        }
+                    });
+                    delete promptHistory[promptData.id];
+                    settings.favorites = settings.favorites.filter(id => id !== promptData.id);
+                    Promise.all([savePrompts(), saveSettings(), saveHistory()]).then(() => {
+                        renderAllPrompts();
+                        showToast('Prompt deleted.');
+                    });
+                }
+            });
+            controls.append(pinBtn, favoriteBtn, editBtn, deleteBtn);
+            btn.appendChild(controls);
+        }
+
+        wrapper.appendChild(btn);
+
+        if (!isMini && settings.showTags && promptData.tags) {
+            const tagsContainer = document.createElement('div');
+            tagsContainer.className = 'prompt-tags-container';
+            (promptData.tags || "").split(',').forEach(tag => {
+                if(tag.trim()){
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'prompt-tag';
+                    tagEl.textContent = tag.trim();
+                    tagsContainer.appendChild(tagEl);
+                }
+            });
+            if(tagsContainer.hasChildNodes()) wrapper.appendChild(tagsContainer);
+        }
+
+        container.appendChild(wrapper);
+    }
+	
+	function createCategory(categoryName, prompts, isCollapsible, isMini = false) {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'prompt-category';
+        categoryDiv.dataset.categoryName = categoryName;
+
+        if (settings.collapsedCategories.includes(categoryName)) {
+            categoryDiv.classList.add('collapsed');
+        }
+
+        const header = document.createElement('div');
+        header.className = 'prompt-category-header';
+
+        const customColor = settings.groupColors[categoryName];
+        if (customColor) {
+            header.style.backgroundColor = customColor;
+        }
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'category-header-title';
+        titleSpan.textContent = categoryName;
+
+        const controls = document.createElement('div');
+        controls.className = 'category-header-controls';
+
+        const isRealCategory = settings.groupOrder.includes(categoryName);
+
+        if (settings.groupByTags && categoryName !== 'Favorites') {
+            header.classList.add('draggable-header');
+            categoryDiv.draggable = true;
+            categoryDiv.addEventListener('dragstart', handleCategoryDragStart);
+            categoryDiv.addEventListener('dragover', handleCategoryDragOver);
+            categoryDiv.addEventListener('dragleave', handleCategoryDragLeave);
+            categoryDiv.addEventListener('drop', handleCategoryDrop);
+            categoryDiv.addEventListener('dragend', handleCategoryDragEnd);
+        }
+
+        if (!isMini && categoryName !== "Favorites" && isRealCategory && !settings.groupByTags) {
+            const editBtn = document.createElement('button');
+            editBtn.title = "Rename Group";
+            editBtn.appendChild(icons.edit.cloneNode(true));
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newName = prompt("Enter new name for the group:", categoryName);
+                if (newName && newName.trim() !== "" && newName !== categoryName) {
+                    if (currentPrompts[newName]) {
+                        showToast("A group with this name already exists.", 3000, 'error');
+                        return;
+                    }
+                    currentPrompts[newName] = currentPrompts[categoryName];
+                    delete currentPrompts[categoryName];
+                    if (settings.groupColors[categoryName]) {
+                        settings.groupColors[newName] = settings.groupColors[categoryName];
+                        delete settings.groupColors[categoryName];
+                    }
+                    const groupIndex = settings.groupOrder.indexOf(categoryName);
+                    if (groupIndex > -1) {
+                         settings.groupOrder.splice(groupIndex, 1, newName);
+                    }
+                    Promise.all([savePrompts(), saveSettings()]).then(renderAllPrompts);
+                }
+            });
+            controls.append(editBtn);
+        }
+
+        if (isCollapsible) {
+            const icon = icons.chevronDown.cloneNode(true);
+            icon.classList.add('category-toggle-icon');
+            controls.appendChild(icon);
+            header.addEventListener('click', (e) => {
+                if(e.target.closest('.category-header-controls')) return;
+                categoryDiv.classList.toggle('collapsed');
+                if (!isMini) {
+                    const isCollapsed = categoryDiv.classList.contains('collapsed');
+                    const categoryId = categoryDiv.dataset.categoryName;
+                    if (isCollapsed) {
+                        if (!settings.collapsedCategories.includes(categoryId)) {
+                           settings.collapsedCategories.push(categoryId);
+                        }
+                    } else {
+                        settings.collapsedCategories = settings.collapsedCategories.filter(c => c !== categoryId);
+                    }
+                    saveSettings();
+                    updateHandleHeight();
+                }
+            });
+        }
+
+        header.append(titleSpan, controls);
+        const content = document.createElement('div');
+        content.className = 'prompt-category-content';
+        if (prompts && Array.isArray(prompts)) {
+            prompts.forEach(p => addPromptButtonToPanel(p, content, categoryName, isMini));
+        }
+        categoryDiv.append(header, content);
+        return categoryDiv;
+    }
 
     function findPromptCategory(promptId) {
         for (const cat in currentPrompts) {
@@ -285,7 +498,8 @@
                 if (sourceIndex > -1 && targetIndex > -1) {
                     const [removed] = categoryPrompts.splice(sourceIndex, 1);
                     categoryPrompts.splice(targetIndex, 0, removed);
-                    savePrompts().then(renderAllPrompts);
+                    savePrompts();
+                    renderAllPrompts();
                 }
             } else {
                 showToast("Can only reorder prompts within the same category.", 2500, 'error');
@@ -782,16 +996,56 @@
     }
 
     function showImportExportModal() {
-        importExportModal.style.display = 'flex';
-        const closeBtn = importExportModal.querySelector('.modal-close-btn');
-        const exportBtn = importExportModal.querySelector('.copy-btn');
-        const urlInput = importExportModal.querySelector('input[type="url"]');
-        const fetchBtn = importExportModal.querySelector('.input-with-button button');
-        const importTextarea = importExportModal.querySelector('#import-textarea');
-        const fileInput = importExportModal.querySelector('#import-file-input');
-        const fileBtn = importExportModal.querySelector('.file-import-button');
-        const importBtn = Array.from(importExportModal.querySelectorAll('button')).find(b => b.textContent.includes('Import'));
+        const modalBody = importExportModal.querySelector('.modal-body');
+        modalBody.innerHTML = ''; // Clear previous content
 
+        const exportSection = document.createElement('div');
+        exportSection.className = 'form-section';
+        const exportLabel = document.createElement('label');
+        exportLabel.textContent = 'Export Prompts';
+        const exportBtn = createButtonWithIcon('Export to JSON File', icons.importExport.cloneNode(true));
+        exportBtn.classList.add('copy-btn');
+        exportSection.append(exportLabel, exportBtn);
+
+        const urlSection = document.createElement('div');
+        urlSection.className = 'form-section';
+        const urlLabel = document.createElement('label');
+        urlLabel.textContent = 'Import from URL';
+        const urlInputContainer = document.createElement('div');
+        urlInputContainer.className = 'input-with-button';
+        const urlInput = document.createElement('input');
+        urlInput.type = 'url';
+        urlInput.placeholder = 'Paste URL to raw .json file...';
+        const fetchBtn = createButtonWithIcon('Fetch', icons.webLink.cloneNode(true));
+        urlInputContainer.append(urlInput, fetchBtn);
+        urlSection.append(urlLabel, urlInputContainer);
+
+        const importSection = document.createElement('div');
+        importSection.className = 'form-section';
+        const importLabel = document.createElement('label');
+        importLabel.htmlFor = 'import-textarea';
+        importLabel.textContent = 'Import from File or Paste JSON';
+        const importTextarea = document.createElement('textarea');
+        importTextarea.id = 'import-textarea';
+        importTextarea.placeholder = '...or paste your exported JSON here.';
+        importTextarea.style.minHeight = '100px';
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.id = 'import-file-input';
+        fileInput.accept = '.json,application/json';
+        const fileBtn = createButtonWithIcon('Select JSON File', icons.uploadFile.cloneNode(true));
+        fileBtn.classList.add('file-import-button');
+        fileBtn.type = 'button';
+        const importBtn = createButtonWithIcon('Import and Merge', null);
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'button-group';
+        btnGroup.append(fileBtn, importBtn);
+        importSection.append(importLabel, importTextarea, fileInput, btnGroup);
+        
+        modalBody.append(exportSection, urlSection, importSection);
+        importExportModal.style.display = 'flex';
+
+        const closeBtn = importExportModal.querySelector('.modal-close-btn');
         const closeModal = () => { importExportModal.style.display = 'none'; lastFetchedUrl = null; };
         closeBtn.onclick = closeModal;
         importExportModal.addEventListener('click', e => { if (e.target === importExportModal) closeModal(); });
@@ -880,10 +1134,15 @@
             showToast("Please set your Gemini API key in Settings.", 3000, 'error');
             return;
         }
+
+        const btnGroup = aiEnhancerModal.querySelector('.button-group');
+        btnGroup.innerHTML = ''; // Clear old buttons
+        const enhanceBtn = createButtonWithIcon('Enhance', icons.sparkle.cloneNode(true));
+        const replaceBtn = createButtonWithIcon('Accept & Replace', null);
+        btnGroup.append(enhanceBtn, replaceBtn);
+        
         aiEnhancerModal.style.display = 'flex';
         const diffContainer = aiEnhancerModal.querySelector('.diff-container');
-        const enhanceBtn = aiEnhancerModal.querySelector('.gemini-prompt-panel-button:first-of-type');
-        const replaceBtn = aiEnhancerModal.querySelector('.gemini-prompt-panel-button:last-of-type');
         const closeBtn = aiEnhancerModal.querySelector('.modal-close-btn');
 
         diffContainer.textContent = 'Original:\n' + promptData.text;
