@@ -6,7 +6,7 @@ import { cssStyles } from './styles.js';
 import { icons } from './icons.js';
 import { buildSettingsUI } from './ui/settingsUI.js';
 import { buildMainUI, renderMiniPanel } from './ui/mainPanel.js';
-import { showToast, showCountdownToast } from './utils.js';
+import { showCountdownToast } from './utils.js';
 import { handleGlobalCanvasDownload } from './features/canvasDownload.js';
 
 // --- EXECUTION GUARD ---
@@ -14,7 +14,7 @@ if (window.geminiPanelEnhanced) {
     console.log('Gemini Prompt Panel Enhancer is already running.');
 } else {
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v35.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v36.0 (grant-none) loaded');
 
     function initializeCopyActions() {
         state.copyResponseButton.addEventListener('click', async () => {
@@ -103,7 +103,7 @@ if (window.geminiPanelEnhanced) {
         GM_addStyle(cssStyles);
         await loadSettings();
         await loadHistory();
-        buildSettingsUI(); // This now builds the settings panel and handle
+        buildSettingsUI();
         
         const checkInterval = setInterval(async () => {
             const chatInterface = document.querySelector('main .chat-history');
@@ -111,9 +111,9 @@ if (window.geminiPanelEnhanced) {
             if (chatInterface && promptInputArea) {
                 clearInterval(checkInterval);
 
-                await buildMainUI(); // Builds the main panel and its UI elements
-                initializeCopyActions(); // Attaches event listeners to copy buttons in the panel
-                initializeGenerationObserver(); // Sets up the observer for auto-copying code
+                await buildMainUI();
+                initializeCopyActions();
+                initializeGenerationObserver();
 
                 // Create and inject the floating mini panel
                 state.floatingMiniPanel = document.createElement('div');

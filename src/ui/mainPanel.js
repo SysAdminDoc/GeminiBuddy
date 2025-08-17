@@ -1,13 +1,11 @@
 // /src/ui/mainPanel.js
 
-import { state, loadSettings, loadHistory, saveSettings } from '../state.js';
+import { state, saveSettings } from '../state.js';
 import { icons } from '../icons.js';
-import { GM_SETTINGS_KEY, presetThemes } from '../config.js';
-import { createButtonWithIcon, showCountdownToast, showToast } from '../utils.js';
-import { handleGlobalCanvasDownload } from '../features/canvasDownload.js';
+import { GM_SETTINGS_KEY } from '../config.js';
+import { createButtonWithIcon, showToast } from '../utils.js';
 import { loadAndDisplayPrompts, renderAllPrompts, createCategory, handleSearch, savePrompts } from '../features/prompts.js';
 import { syncFromGist } from '../features/api.js';
-import { buildSettingsUI } from './settingsUI.js';
 import { buildPromptFormModal, buildImportExportModal, buildAIEnhancerModal, buildAnalyticsModal, buildVersionHistoryModal, showPromptForm } from './modals.js';
 
 function applyTheme() {
