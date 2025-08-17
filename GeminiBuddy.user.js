@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name         Gemini Prompt Panel Enhancer
-// @namespace    https://github.com/SysAdminDoc/Gemini-Prompt-Panel
-// @version      29.0
+// @name         GeminiBuddy
+// @namespace    https://github.com/SysAdminDoc/GeminiBuddy
+// @version      30
 // @description  Upgraded with profiles, UI refinements, improved defaults, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
-// @icon         https://raw.githubusercontent.com/SysAdminDoc/Gemini-Prompt-Panel/refs/heads/main/Google_Gemini_icon_2025.svg
+// @icon         https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/refs/heads/main/assets/favicon/favicon.svg
 // @grant        GM_addStyle
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -15,10 +15,10 @@
 // @connect      raw.githubusercontent.com
 // @run-at       document-idle
 // @license      MIT
-// @updateURL    https://github.com/SysAdminDoc/Gemini-Prompt-Panel/raw/refs/heads/main/Gemini%20Prompt%20Panel.user.js
-// @downloadURL  https://github.com/SysAdminDoc/Gemini-Prompt-Panel/raw/refs/heads/main/Gemini%20Prompt%20Panel.user.js
-// @require      file:///C:/path/to/your/scripts/data.js
-// @require      file:///C:/path/to/your/scripts/ui.js
+// @updateURL    https://github.com/SysAdminDoc/GeminiBuddy/raw/refs/heads/main/GeminiBuddy.user.js
+// @downloadURL  https://github.com/SysAdminDoc/GeminiBuddy/raw/refs/heads/main/GeminiBuddy.user.js
+// @require      https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/refs/heads/main/src/data.js
+// @require      https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/refs/heads/main/src/ui.js
 // ==/UserScript==
 
 (function() {
