@@ -49,6 +49,13 @@ const icons = {
 };
 
 // --- CSS ---
+const FULL_WIDTH_CSS = `
+    html, html > user-query { max-width: none !important; }
+    div.conversation-container { max-width: none !important; }
+    div.input-area-container ~ hallucination-disclaimer { display: none !important; }
+    div.input-area-container { padding-bottom: 0.5rem !important; }
+    div.avatar-gutter { display: none !important; }
+`;
 function applyStyles() {
     GM_addStyle(`
         :root {
@@ -384,50 +391,11 @@ function buildImportExportModal() {
     title.textContent = 'Import / Export Prompts';
     const closeBtn = document.createElement('button');
     closeBtn.className = 'modal-close-btn';
+    closeBtn.appendChild(icons.close.cloneNode(true));
     modalHeader.append(title, closeBtn);
     const modalBody = document.createElement('div');
     modalBody.className = 'modal-body';
-    const exportSection = document.createElement('div');
-    exportSection.className = 'form-section';
-    const exportLabel = document.createElement('label');
-    exportLabel.textContent = 'Export Prompts';
-    const exportBtn = createButtonWithIcon('Export to JSON File', icons.importExport.cloneNode(true));
-    exportBtn.classList.add('copy-btn');
-    exportSection.append(exportLabel, exportBtn);
-    const urlSection = document.createElement('div');
-    urlSection.className = 'form-section';
-    const urlLabel = document.createElement('label');
-    urlLabel.textContent = 'Import from URL';
-    const urlInputContainer = document.createElement('div');
-    urlInputContainer.className = 'input-with-button';
-    const urlInput = document.createElement('input');
-    urlInput.type = 'url';
-    urlInput.placeholder = 'Paste URL to raw .json file...';
-    const fetchBtn = createButtonWithIcon('Fetch', icons.webLink.cloneNode(true));
-    urlInputContainer.append(urlInput, fetchBtn);
-    urlSection.append(urlLabel, urlInputContainer);
-    const importSection = document.createElement('div');
-    importSection.className = 'form-section';
-    const importLabel = document.createElement('label');
-    importLabel.htmlFor = 'import-textarea';
-    importLabel.textContent = 'Import from File or Paste JSON';
-    const importTextarea = document.createElement('textarea');
-    importTextarea.id = 'import-textarea';
-    importTextarea.placeholder = '...or paste your exported JSON here.';
-    importTextarea.style.minHeight = '100px';
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.id = 'import-file-input';
-    fileInput.accept = '.json,application/json';
-    const fileBtn = createButtonWithIcon('Select JSON File', icons.uploadFile.cloneNode(true));
-    fileBtn.classList.add('file-import-button');
-    fileBtn.type = 'button';
-    const importBtn = createButtonWithIcon('Import and Merge', null);
-    const btnGroup = document.createElement('div');
-    btnGroup.className = 'button-group';
-    btnGroup.append(fileBtn, importBtn);
-    importSection.append(importLabel, importTextarea, fileInput, btnGroup);
-    modalBody.append(exportSection, urlSection, importSection);
+    // The main script will populate the body with buttons
     modalContent.append(modalHeader, modalBody);
     modal.appendChild(modalContent);
     return modal;
@@ -456,10 +424,7 @@ function buildAIEnhancerModal() {
     const btnGroup = document.createElement('div');
     btnGroup.className = 'button-group';
     btnGroup.style.marginTop = '20px';
-    const enhanceBtn = createButtonWithIcon('Enhance', icons.sparkle.cloneNode(true));
-    const replaceBtn = createButtonWithIcon('Accept & Replace', null);
-    replaceBtn.disabled = true;
-    btnGroup.append(enhanceBtn, replaceBtn);
+    // Buttons will be added by the main script
     modalBody.append(diffContainer, btnGroup);
     modalContent.append(modalHeader, modalBody);
     modal.appendChild(modalContent);
