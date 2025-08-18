@@ -102,22 +102,7 @@ function fetchDefaultPrompts() {
     });
 }
 
-// --- AI & SYNC FEATURES ---
-async function callGeminiAPI(prompt) {
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${settings.geminiAPIKey}`;
-    const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error.message);
-    }
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
-}
-
+// --- SYNC FEATURES ---
 async function syncFromGist(isManual = false) {
     if (!settings.gistURL) {
         if (isManual) showToast("Please provide a Gist URL in settings.", 2500, 'error');
