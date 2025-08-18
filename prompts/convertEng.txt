@@ -1,0 +1,8 @@
+Please translate to english if needed, remove clutter.
+Make it associate my github, remove old authors information.
+Author name: Matthew Parker
+My github: https://github.com/SysAdminDoc/YTKit
+This file is located in https://github.com/SysAdminDoc/YTKit/modules/
+Remove greasyfork.org association, make it update information only from the hithub YTKit module directory
+Make the userscript only apply to youtube.com and rumble.com, remove all other sites.
+Send full end to end update.
