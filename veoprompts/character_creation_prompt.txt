@@ -1,0 +1,22 @@
+CHARACTER: GRAY WESTIN
+AGE: 24
+[REDACTED]
+NOTES FOR CONSISTENCY: Maintain same hair length and natural wave, same stubble level, same skin tone and lighting warmth. Always denim jacket with sherpa collar over dark shirt unless scene dictates a deliberate wardrobe change. Eyes should remain open with a natural gaze in all scenes.
+CHARACTER: ELLIE TANNER
+AGE: 8
+LOOK: Long brown hair in a ponytail, floral dress, sneakers. Carries a small stuffed rabbit.
+STYLE: Innocent, bright presence.
+TRAITS: Curious, happy, represents what the town used to be.
+ARC: Appears only in early “good” scenes, vanishes as the decay worsens.
+CHARACTER: TOWN RESIDENTS (ENSEMBLE)
+LOOK: Everyday small-town people—shop owners, teenagers, elderly folks, drivers.
+STYLE: Starts friendly, slowly becomes aggressive, suspicious, and disconnected.
+ARC: Visual shift from warmth to coldness.
+FULL SCENE BREAKDOWN
+SCENE 6 – Confrontation at a Stoplight (0:56‑1:04)
+Camera: Over‑the‑hood view toward angry drivers
+Lens: 50mm slight compression
+Lighting: Cloudy daylight with drizzle starting
+Prompt: Two drivers yelling through open windows at red light. GRAY WESTIN and ELLIE visible behind them in car, unsettled. Rain starting to speckle glass.
+Characters in Scene: GRAY WESTIN, ELLIE TANNER, TOWN RESIDENTS
+================================
