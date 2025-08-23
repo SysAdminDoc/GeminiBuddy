@@ -14,6 +14,9 @@ function makeIcon(svgPath, size = 20) {
     return svg;
 }
 const icons = {
+    // --- START: VEO MODULE ADDITION (New Icon) ---
+    video: makeIcon('M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z', 18),
+    // --- END: VEO MODULE ADDITION ---
     plus: makeIcon('M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z', 18),
     unlocked: makeIcon('M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z', 18),
     locked: makeIcon('M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2V6c0-1.65 1.35-3 3-3s3 1.35 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z', 18),
@@ -116,6 +119,26 @@ function applyStyles() {
         .prompt-button-wrapper:hover .prompt-button-controls { display: flex; }
         .prompt-button-controls button { background: transparent; border: none; cursor: pointer; padding: 3px; border-radius: 50%; display:flex; align-items:center; color: var(--panel-text); }
         .prompt-button-controls button:hover { background-color: rgba(255,255,255,0.15); }
+        /* --- START: VEO MODULE ADDITION (New CSS) --- */
+        .prompt-button-controls .prompt-control-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            padding: 3px;
+            margin: 0;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            border-radius: 50%;
+            color: var(--panel-text);
+        }
+        .prompt-button-controls .prompt-control-link:hover {
+            opacity: 1;
+            background-color: rgba(255,255,255,0.15);
+        }
+        /* --- END: VEO MODULE ADDITION --- */
         .favorite-btn.favorited, .pin-btn.pinned { color: var(--favorite-color); }
         .pin-btn.pinned { color: var(--pin-color); }
         .ai-btn { color: var(--ai-color); }
@@ -233,6 +256,7 @@ function applyStyles() {
 }
 
 // --- MODAL BUILDERS ---
+// ... (The rest of the ui.js file is unchanged)
 function buildPromptFormModal() {
     const modal = document.createElement('div');
     modal.id = 'prompt-form-modal';
