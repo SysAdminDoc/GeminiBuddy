@@ -2665,6 +2665,328 @@
       "lastUsed": null
     }
   ],
+  "PowerShell GUI Development": [
+    {
+      "id": "ps-1",
+      "name": "Maven Dark Corporate Theme",
+      "text": "Act as a PowerShell GUI expert specializing in professional Windows Forms and WPF applications. Transform the provided script using the Maven Dark Corporate theme:\n\n**COLOR PALETTE:**\n```powershell\n$colorBg = '#020617'        # Main background - near-black slate\n$colorFg = '#e5e7eb'        # Primary text - soft white\n$colorAccent = '#22c55e'    # Accent/highlight - vibrant green\n$colorDim = '#9ca3af'       # Secondary text - gray\n$colorBorder = '#1f2937'    # Subtle borders - dark gray\n$colorTile = '#0f172a'      # Card/panel background - dark slate\n$colorTileHover = '#1e293b' # Hover state - lighter slate\n$colorInfo = '#0ea5e9'      # Info accent - sky blue\n```\n\n**REQUIREMENTS:**\n- FormBorderStyle: None with custom-painted 2px accent border\n- Segoe UI typography (10pt base, 16pt headers, Consolas for logs)\n- FlatStyle buttons with hover effects (MouseEnter/MouseLeave)\n- Primary buttons: green background (#22c55e) with dark text\n- Splash screen: borderless, marquee progress bar, status label\n- RichTextBox logs: dark slate background, color-coded messages\n- Use [System.Windows.Forms.Application]::EnableVisualStyles()\n- Use BITS transfers instead of Invoke-WebRequest for downloads\n- TLS 1.2 enforcement, admin elevation check, proper error handling\n\n**OUTPUT:** Return FULL, COMPLETE script with no omissions.",
+      "tags": "powershell,gui,winforms,wpf,dark theme,professional,maven",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ps-2",
+      "name": "PowerShell WPF Application Builder",
+      "text": "Act as a PowerShell WPF expert. Create a professional WPF-based GUI application with:\n\n**STRUCTURE:**\n- XAML defined as here-string with proper namespaces\n- XamlReader for parsing, named elements via FindName()\n- Event handlers as script blocks\n- Proper resource cleanup on window close\n\n**STYLING:**\n- Dark theme with slate backgrounds (#020617, #0f172a)\n- Green accent color (#22c55e) for highlights\n- Custom window chrome (WindowStyle='None', AllowsTransparency)\n- Styled buttons, text boxes, combo boxes\n- Grid/StackPanel layouts with proper margins\n\n**FEATURES:**\n- Sidebar navigation with category icons\n- Main content area with card-based layouts\n- Status bar with multi-panel information\n- Toast notifications for user feedback\n- Settings persistence via JSON file\n\n**CODE PATTERNS:**\n- Admin elevation check at start\n- Try/catch error handling throughout\n- Background jobs for long operations with UI updates\n- Proper event disposal\n\n**OUTPUT:** Return COMPLETE script in single code block.",
+      "tags": "powershell,wpf,xaml,gui,dark theme,professional",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ps-3",
+      "name": "PowerShell WinForms Modernization",
+      "text": "Act as a PowerShell GUI modernization specialist. Transform the provided legacy WinForms script into a polished, professional application that looks like expensive corporate software.\n\n**MODERNIZATION TASKS:**\n- Replace default styling with dark theme (slate backgrounds, green accents)\n- Add borderless form with custom-painted accent border\n- Implement hover effects on all interactive elements\n- Add splash screen with progress indicator\n- Create consistent button styling (FlatStyle, proper padding)\n- Add tooltips to all buttons and controls\n- Implement proper keyboard navigation\n- Add status bar with operation feedback\n\n**TECHNICAL IMPROVEMENTS:**\n- Add admin elevation check\n- Implement proper error handling with user-friendly messages\n- Use BITS transfers for file downloads\n- Add logging to RichTextBox with color-coded messages\n- Ensure UI responsiveness with DoEvents() during operations\n- Proper form disposal and cleanup\n\n**PRESERVE:** All existing functionality - this is visual and structural modernization only.\n\n**OUTPUT:** Return FULL, COMPLETE modernized script.",
+      "tags": "powershell,winforms,modernize,ui,professional,refactor",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ps-4",
+      "name": "PowerShell Tool Suite Builder",
+      "text": "Act as a PowerShell application architect. Create a unified tool suite that integrates multiple scripts into a single professional launcher application.\n\n**ARCHITECTURE:**\n- WPF-based main window with sidebar navigation\n- Tool categories with expandable sections\n- Tool cards with icon, name, description, launch button\n- Console output overlay for embedded tool feedback\n- Settings panel for configuration\n- GitHub integration for script syncing (optional)\n\n**TOOL INTEGRATION PATTERNS:**\n- External scripts: Launch via Start-Process with proper paths\n- Embedded functions: Run directly with output capture\n- Hybrid: Check for external script, fallback to embedded\n\n**UI COMPONENTS:**\n- Category list with tool counts\n- Search/filter functionality\n- Favorites system (starred tools at top)\n- Recent tools tracking\n- Tool status indicators\n\n**OUTPUT:** Return COMPLETE unified toolbox script.",
+      "tags": "powershell,tool suite,launcher,wpf,integration,professional",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ps-5",
+      "name": "PowerShell Splash Screen Generator",
+      "text": "Act as a PowerShell GUI specialist. Create a professional splash screen component for the provided script.\n\n**SPLASH SCREEN SPECS:**\n- Borderless form (approximately 500x250)\n- Custom-painted accent border (2px green)\n- Centered title in accent color\n- Subtitle in dim gray\n- Marquee progress bar (Height: 5px, MarqueeAnimationSpeed: 20)\n- Status label for operation updates\n- TopMost: true during loading\n- Auto-close when initialization completes\n\n**INTEGRATION:**\n- Show splash before main form creation\n- Update status label during initialization steps\n- Support for determinate progress if steps are known\n- Graceful transition to main window\n\n**STYLING:**\n- Background: #020617 (near-black)\n- Title: #22c55e (green accent)\n- Subtitle: #9ca3af (gray)\n- Progress bar: Green on dark background\n\n**OUTPUT:** Return splash screen code integrated with the main script.",
+      "tags": "powershell,splash screen,loading,gui,professional",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ps-6",
+      "name": "Python to PowerShell Converter",
+      "text": "Act as a polyglot developer expert in both Python and PowerShell. Convert the provided Python GUI application (tkinter) to PowerShell (WinForms or WPF).\n\n**CONVERSION MAPPING:**\n- tkinter → System.Windows.Forms or WPF\n- ttk widgets → Styled WinForms controls\n- Pack/Grid geometry → TableLayoutPanel/FlowLayoutPanel or WPF Grid\n- StringVar/IntVar → Script-scoped variables\n- Command callbacks → Add_Click event handlers\n- After() → Timer or DispatcherTimer\n- Messagebox → [System.Windows.Forms.MessageBox]\n\n**PRESERVE:**\n- All functionality and features\n- UI layout and organization\n- Color scheme and styling\n- Settings persistence\n\n**ENHANCE:**\n- Apply dark theme if not present\n- Add proper error handling\n- Improve Windows integration\n\n**HANDLE:**\n- Unicode/emoji → BMP-safe alternatives\n- External dependencies → PowerShell equivalents or embedded\n- File paths → Windows conventions\n\n**OUTPUT:** Return COMPLETE PowerShell script.",
+      "tags": "powershell,python,convert,tkinter,winforms,migration",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ps-7",
+      "name": "PowerShell Settings Panel Builder",
+      "text": "Act as a PowerShell UI specialist. Create a comprehensive settings panel/dialog for the provided script.\n\n**SETTINGS PANEL DESIGN:**\n- Tabbed interface (TabControl) for categories\n- Categories: General, Appearance, Features, Advanced, About\n- Setting rows: Label, Description (small gray text), Control\n- Control types: CheckBox, ComboBox, TextBox, NumericUpDown, ColorPicker\n- Save/Cancel/Reset to Defaults buttons\n\n**PERSISTENCE:**\n- JSON configuration file in AppData\n- Load on startup with defaults fallback\n- Save on OK/Apply with validation\n- Export/Import settings functionality\n\n**THEMING:**\n- Match main application dark theme\n- Consistent control styling\n- Proper tab page backgrounds\n\n**VALIDATION:**\n- Input validation with error indicators\n- Confirmation for destructive resets\n- Settings change detection (prompt on cancel if changed)\n\n**OUTPUT:** Return settings panel code integrated with the script.",
+      "tags": "powershell,settings,configuration,gui,panel,persistence",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ps-8",
+      "name": "PowerShell 7 Compatibility Fixer",
+      "text": "Act as a PowerShell compatibility expert. Fix the provided script to work on both Windows PowerShell 5.1 and PowerShell 7.x.\n\n**COMMON ISSUES TO FIX:**\n- Unicode characters above BMP (U+FFFF) → Replace with BMP alternatives\n- Add-Type C# compilation differences → Use compatible assembly references\n- .NET Framework vs .NET Core types → Add version detection and fallbacks\n- Emoji icons → Replace with Unicode symbols in BMP range\n- Form/Control creation differences → Test and adapt\n\n**PATTERNS:**\n```powershell\n# Version detection\nif ($PSVersionTable.PSVersion.Major -ge 7) {\n    # PS7 specific code\n} else {\n    # PS5.1 code\n}\n```\n\n**SAFE ALTERNATIVES:**\n- Emojis → Use [char]0x#### for BMP Unicode\n- Custom C# classes → Standard WinForms with FlatStyle\n- Graphics APIs → Basic control properties\n\n**OUTPUT:** Return COMPLETE compatible script with version handling.",
+      "tags": "powershell,compatibility,ps7,ps5,unicode,fix",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    }
+  ],
+  "Medical Imaging & DICOM": [
+    {
+      "id": "mi-1",
+      "name": "DICOM Processing Tool",
+      "text": "Act as a medical imaging software developer specializing in DICOM. Create or enhance a DICOM processing application with:\n\n**CORE FEATURES:**\n- DICOM file browser with metadata preview\n- Image viewing with Window/Level adjustment\n- Batch anonymization with configurable rules\n- Format conversion (PNG, JPEG, BMP, TIFF)\n- Metadata editor with tag search\n- External viewer integration (Weasis, RadiAnt, MicroDicom)\n\n**TECHNICAL:**\n- Use pydicom (Python) or DCMTK tools (PowerShell)\n- Handle various transfer syntaxes\n- Support multi-frame DICOM\n- Proper DICOM tag manipulation\n- Patient grouping for batch operations\n\n**UI:**\n- Professional dark theme\n- Dashboard with quick actions\n- Recent files tracking\n- Progress indicators for batch operations\n- Activity logging\n\n**COMPLIANCE:**\n- HIPAA-aware anonymization options\n- Configurable tag removal/replacement\n- Audit logging for changes\n\n**OUTPUT:** Return COMPLETE application code.",
+      "tags": "medical,dicom,imaging,healthcare,python,powershell",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "mi-2",
+      "name": "Medical System Deployment Script",
+      "text": "Act as a medical IT deployment specialist. Create a PowerShell deployment/configuration script for medical imaging workstations.\n\n**DEPLOYMENT TASKS:**\n- Software installation (silent/unattended)\n- Configuration file generation and deployment\n- Firewall rule configuration\n- Service management (install, configure, start)\n- Network settings for medical devices\n- User preferences deployment\n\n**SAFETY FEATURES:**\n- Pre-deployment backup creation\n- Rollback capability\n- Validation checks before and after\n- Detailed logging\n- Error recovery procedures\n\n**UI:**\n- Professional dark-themed GUI\n- Step-by-step wizard or dashboard\n- Progress tracking\n- Status indicators (success/warning/error)\n- Console output for detailed logs\n\n**STANDARDS:**\n- HIPAA compliance considerations\n- Audit trail for changes\n- Documentation generation\n\n**OUTPUT:** Return COMPLETE deployment script.",
+      "tags": "medical,deployment,powershell,healthcare,installation,configuration",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "mi-3",
+      "name": "Voyance/Candelis Configuration Manager",
+      "text": "Act as a medical imaging IT specialist familiar with Voyance and Candelis systems. Create a configuration management tool that handles:\n\n**CONFIGURATION MANAGEMENT:**\n- Export current configurations to backup\n- Import/restore configurations from backup\n- Generate new configuration files from templates\n- Compare configurations between systems\n- Validate configuration integrity\n\n**SYSTEM OPERATIONS:**\n- Service start/stop/restart\n- Installation/uninstallation procedures\n- Log collection and analysis\n- Health checks and diagnostics\n- License management assistance\n\n**USER PREFERENCES:**\n- Generate UserPreferences.xml files\n- Deploy preferences to multiple workstations\n- Template-based configuration\n\n**UI:**\n- Professional dark-themed interface\n- Organized by operation type\n- Confirmation dialogs for destructive operations\n- Progress and status feedback\n\n**OUTPUT:** Return COMPLETE management tool.",
+      "tags": "medical,voyance,candelis,configuration,imaging,healthcare",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    }
+  ],
+  "Social Media Automation": [
+    {
+      "id": "sm-1",
+      "name": "Facebook Ad Blocker Userscript",
+      "text": "Act as a userscript developer specializing in social media automation. Create or enhance a Facebook ad blocking userscript with:\n\n**DETECTION METHODS:**\n- Sponsored text detection (obfuscated CSS, aria labels)\n- /ads/about link detection\n- data-ad-rendering-role attributes\n- attributionsrc privacy_sandbox tracking\n- __cft__ tracking parameters\n- External link patterns\n- Canvas/image-based ads\n\n**BLOCKING FEATURES:**\n- Auto-detect and queue sponsors for blocking\n- Open profile in background tab\n- Automated block button clicking\n- Block queue management\n- Manual block buttons on all posts\n\n**DATA MANAGEMENT:**\n- Persistent blocklist storage\n- Import/export CSV\n- Foundation blocklist import\n- Whitelist for exceptions\n- Statistics tracking\n\n**UI:**\n- Draggable dashboard panel\n- Start/Stop controls\n- Activity log\n- Statistics display\n- Settings toggles\n\n**OUTPUT:** Return COMPLETE userscript.",
+      "tags": "userscript,facebook,ad blocker,automation,sponsored",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "sm-2",
+      "name": "TikTok Content Blocker",
+      "text": "Act as a userscript developer for TikTok automation. Create a content blocking userscript that:\n\n**DETECTION:**\n- Identify sponsored/promoted content\n- Detect ad keywords in multiple languages\n- Find ad container elements\n- Track video metadata for ad signals\n\n**BLOCKING:**\n- Auto-skip detected ad videos\n- Block advertiser profiles automatically\n- Manual block buttons on all videos\n- Block commenters option\n\n**QUEUE SYSTEM:**\n- Queue profiles for blocking\n- Process queue with delays (avoid rate limits)\n- Handle CAPTCHAs gracefully\n- Track blocking success/failure\n\n**UI:**\n- Floating dashboard (draggable)\n- Block list management\n- Import/export functionality\n- Statistics and activity log\n\n**OUTPUT:** Return COMPLETE userscript.",
+      "tags": "userscript,tiktok,blocker,automation,ads",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "sm-3",
+      "name": "Reddit Enhancement Userscript",
+      "text": "Act as a userscript developer creating Reddit enhancements. Build a comprehensive Reddit enhancement userscript with:\n\n**FEATURES:**\n- Never-ending Reddit (infinite scroll)\n- Inline image/video expansion\n- User tagging system\n- Comment highlighting (new since last visit)\n- Keyboard navigation\n- Post filtering by keyword/subreddit\n- Dark mode (toggle)\n- Collapsible sidebar\n- Old Reddit redirect option\n- Old Reddit favicon restoration\n\n**COMMENT ENHANCEMENTS:**\n- Collapse child comments\n- Comment highlighting\n- User tagging with colors\n- AutoModerator hiding\n\n**MEDIA:**\n- Inline image expansion\n- YouTube video embedding\n- Twitter/X post embedding\n- Fix broken image links (old Reddit)\n\n**SETTINGS:**\n- Per-feature toggles\n- Persistent storage\n- Import/export configuration\n- Works on both old.reddit.com and www.reddit.com\n\n**OUTPUT:** Return COMPLETE userscript.",
+      "tags": "userscript,reddit,enhancement,res,features",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "sm-4",
+      "name": "Google Search Enhancer",
+      "text": "Act as a userscript developer for search enhancement. Create a Google Search enhancement userscript with:\n\n**FEATURES:**\n- Hide AI Overview/SGE results\n- Hide 'People Also Ask' sections\n- Hide sponsored results\n- Domain blocking with button on each result\n- Custom search shortcuts (Images, Videos, News, Maps)\n- Dark theme option\n- Endless scroll (auto-load next page)\n- Keyboard shortcuts\n\n**DOMAIN MANAGEMENT:**\n- Per-result block button\n- Blocked domain list management\n- Import/export blocklist\n- Temporary vs permanent blocks\n\n**ELEMENT HIDING:**\n- Configurable sections to hide\n- Featured snippets toggle\n- Knowledge panels toggle\n- Shopping results toggle\n- Local results toggle\n\n**PERFORMANCE:**\n- Efficient MutationObserver\n- Debounced/throttled handlers\n- Early CSS injection (prevent FOUC)\n- Updated selectors for 2024/2025 Google DOM\n\n**OUTPUT:** Return COMPLETE userscript.",
+      "tags": "userscript,google,search,enhancement,blocker",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "sm-5",
+      "name": "Media Embed Userscript",
+      "text": "Act as a userscript developer for media embedding. Create a userscript that embeds media content inline on forums/sites:\n\n**SUPPORTED PLATFORMS:**\n- YouTube (privacy-enhanced embed)\n- Twitter/X (widget API)\n- Facebook videos\n- Instagram posts\n- TikTok videos\n- Rumble, Bitchute, Odysee\n- Vimeo, Streamable\n- Twitch clips\n\n**FEATURES:**\n- Detect links and add toggle buttons\n- Expand/collapse embeds inline\n- Responsive embed sizing\n- Dark theme compatible styling\n- Handle dynamically loaded content\n\n**CONFIGURATION:**\n- Per-platform enable/disable\n- Auto-embed vs click-to-embed\n- Maximum embed size options\n- Site-specific customization\n\n**RESILIENCE:**\n- Reload failed embeds\n- Fallback for blocked platforms\n- Handle Twitter widget loading issues\n\n**OUTPUT:** Return COMPLETE userscript.",
+      "tags": "userscript,embed,youtube,twitter,media,forums",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    }
+  ],
+  "Desktop Application Development": [
+    {
+      "id": "da-1",
+      "name": "Video Downloader Application",
+      "text": "Act as a desktop application developer. Create a video downloader GUI application using yt-dlp:\n\n**FEATURES:**\n- URL input with validation\n- Format selection (video+audio, audio only, video only)\n- Quality selection (best, 4K, 1080p, 720p, etc.)\n- Output format selection (MP4, MKV, WebM, MP3, etc.)\n- Download folder selection\n- Progress bar with speed/ETA\n- Concurrent download support\n- Download history\n\n**AUTO-SETUP:**\n- Auto-download yt-dlp binary if missing\n- Auto-download FFmpeg if missing\n- Update checking for yt-dlp\n- Store binaries in AppData\n\n**UI:**\n- Professional dark theme\n- Clean, intuitive layout\n- Real-time log output\n- Toast notifications\n- System tray option\n\n**TECHNICAL:**\n- Background download threads\n- Proper process management\n- Error handling with user feedback\n- Settings persistence\n\n**OUTPUT:** Return COMPLETE application (Python or PowerShell).",
+      "tags": "desktop,video,downloader,ytdlp,gui,python,powershell",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "da-2",
+      "name": "Bookmark Manager Application",
+      "text": "Act as a desktop application developer. Create a comprehensive bookmark manager with:\n\n**IMPORT/EXPORT:**\n- Browser HTML bookmark import (Chrome, Firefox, Edge)\n- JSON import/export\n- CSV export\n- OPML support\n- Duplicate detection and removal\n\n**ORGANIZATION:**\n- Nested category structure\n- Drag-and-drop reorganization\n- Tagging system with colors\n- Search and filter\n- Smart categories (auto-populate by rules)\n\n**CATEGORIZATION:**\n- Rule-based auto-categorization\n- Custom category patterns\n- AI-assisted categorization (optional API)\n- Category templates\n\n**UI:**\n- Three-panel layout (categories, bookmarks, preview)\n- Dark theme with multiple theme options\n- Context menus for quick actions\n- Keyboard shortcuts\n\n**FEATURES:**\n- Favicon fetching\n- Broken link checking\n- Bookmark validation\n- Usage statistics\n\n**OUTPUT:** Return COMPLETE application.",
+      "tags": "desktop,bookmarks,manager,organizer,gui,python",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "da-3",
+      "name": "QR Code Generator Pro",
+      "text": "Act as a desktop application developer. Create a professional QR code generator with extensive customization:\n\n**QR FEATURES:**\n- Text, URL, vCard, WiFi, Email content types\n- Error correction level selection\n- Module size/resolution control\n- Quiet zone configuration\n\n**STYLING:**\n- Foreground/background colors\n- Gradient support (horizontal, vertical, radial)\n- Module styles (square, rounded, circle, dots)\n- Transparent background option\n- Logo/image embedding\n\n**PRESET SYSTEM:**\n- 50+ built-in style presets\n- Visual gallery with thumbnails\n- Category organization\n- Custom preset saving\n\n**UI:**\n- Live preview with zoom\n- Style gallery browser\n- Quick color pickers\n- Theme support (dark/light)\n\n**EXPORT:**\n- PNG, SVG, PDF output\n- Batch generation\n- Resolution options\n- Transparent PNG default\n\n**OUTPUT:** Return COMPLETE application.",
+      "tags": "desktop,qr code,generator,styling,gui,python",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "da-4",
+      "name": "Privacy/Security Hardening Tool",
+      "text": "Act as a desktop application developer focused on Windows privacy. Create an offline privacy hardening GUI:\n\n**FEATURES:**\n- Windows telemetry disabling\n- Privacy setting toggles\n- Bloatware removal\n- Service management\n- Scheduled task management\n- Hosts file blocking\n- Firewall rule management\n\n**SCRIPT GENERATION:**\n- Generate apply scripts (make changes)\n- Generate revert scripts (undo changes)\n- Preview changes before applying\n- Explanation for each setting\n\n**ORGANIZATION:**\n- Category-based browsing\n- Search functionality\n- Severity/impact indicators\n- Recommended presets\n\n**SAFETY:**\n- Create restore points\n- Backup before changes\n- Detailed logging\n- Undo capability\n\n**OFFLINE:**\n- Fully self-contained\n- Embedded database\n- No internet required\n- USB-portable\n\n**OUTPUT:** Return COMPLETE offline application.",
+      "tags": "desktop,privacy,security,windows,hardening,offline",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "da-5",
+      "name": "Script Gallery Manager",
+      "text": "Act as a desktop application developer. Create a script management and launcher application:\n\n**FEATURES:**\n- Browse local script directories\n- GitHub private repo integration\n- Script preview with syntax highlighting\n- Category organization\n- Favorites/pinning\n- Search across all scripts\n- Recent scripts tracking\n\n**SCRIPT SUPPORT:**\n- PowerShell (.ps1)\n- Python (.py)\n- Batch (.bat, .cmd)\n- JavaScript (.js)\n- Other configurable types\n\n**EXECUTION:**\n- Run scripts with output capture\n- Run as administrator option\n- Parameter input for scripts\n- Queue multiple scripts\n- Console output overlay\n\n**SYNC:**\n- GitHub token authentication\n- Auto-sync on startup\n- Manual sync button\n- Conflict handling\n\n**UI:**\n- Three-panel layout (categories, gallery, preview)\n- Dark theme with accent colors\n- Card-based gallery view\n- Keyboard shortcuts\n\n**OUTPUT:** Return COMPLETE application.",
+      "tags": "desktop,scripts,gallery,launcher,github,manager",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    }
+  ],
+  "Code Conversion & Migration": [
+    {
+      "id": "cc-1",
+      "name": "Extension to Userscript Converter",
+      "text": "Act as a browser extension and userscript expert. Convert the provided Chrome/Firefox extension into a single-file Tampermonkey userscript.\n\n**CONVERSION TASKS:**\n- Merge all files (manifest, background, content, popup) into one script\n- Replace chrome.storage.* → GM_getValue/GM_setValue\n- Replace chrome.runtime.sendMessage → Direct function calls\n- Replace fetch for cross-origin → GM_xmlhttpRequest\n- Convert popup HTML → Floating panel/modal in page\n- Replace chrome.tabs.* → GM_openInTab where applicable\n- Handle chrome.contextMenus → GM_registerMenuCommand\n- Replace chrome.alarms → setInterval/setTimeout\n\n**USERSCRIPT STRUCTURE:**\n- Proper metadata block with all @match patterns\n- Single GM_addStyle block for all CSS\n- Wrapped in IIFE, no globals\n- @run-at document-start for early CSS\n- Minimal @grant declarations\n\n**PRESERVE:**\n- All functionality\n- Settings and configuration\n- UI design quality\n\n**OUTPUT:** Return COMPLETE userscript in single code block.",
+      "tags": "convert,extension,userscript,chrome,tampermonkey,migration",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "cc-2",
+      "name": "Userscript to Extension Converter",
+      "text": "Act as a browser extension developer. Convert the provided userscript into a proper Manifest V3 Chrome/Firefox extension.\n\n**FILE STRUCTURE:**\n```\nextension/\n├── manifest.json\n├── background.js (service worker)\n├── content.js\n├── popup.html\n├── popup.js\n├── popup.css\n├── options.html (if settings exist)\n├── options.js\n└── icons/\n```\n\n**CONVERSION TASKS:**\n- Create Manifest V3 with appropriate permissions\n- GM_getValue/GM_setValue → chrome.storage.sync\n- GM_addStyle → Inject via content script or CSS file\n- GM_xmlhttpRequest → fetch with host_permissions\n- GM_registerMenuCommand → chrome.contextMenus\n- GM_openInTab → chrome.tabs.create\n- Floating panels → Browser action popup\n\n**ENHANCEMENTS:**\n- Proper background service worker\n- Message passing between contexts\n- Storage sync for cross-device\n- Browser action with popup UI\n\n**OUTPUT:** Provide all files with clear path comments.",
+      "tags": "convert,userscript,extension,chrome,manifest v3,migration",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "cc-3",
+      "name": "Python to PowerShell GUI Converter",
+      "text": "Act as a cross-language developer. Convert the provided Python tkinter GUI application to PowerShell WinForms.\n\n**WIDGET MAPPING:**\n- tk.Tk() → [System.Windows.Forms.Form]\n- tk.Frame → Panel\n- tk.Label → Label\n- tk.Button → Button\n- tk.Entry → TextBox\n- tk.Text → RichTextBox\n- tk.Listbox → ListBox\n- ttk.Combobox → ComboBox\n- ttk.Treeview → TreeView or ListView\n- tk.Checkbutton → CheckBox\n- ttk.Notebook → TabControl\n\n**LAYOUT CONVERSION:**\n- pack() → Dock property or FlowLayoutPanel\n- grid() → TableLayoutPanel\n- place() → Absolute positioning\n\n**EVENT HANDLING:**\n- command= → Add_Click({})\n- bind() → Add_EventName({})\n- after() → Timer\n\n**CONSIDERATIONS:**\n- Replace emojis with BMP Unicode or text\n- Handle threading differences\n- Adapt file dialogs\n- Convert messagebox calls\n\n**OUTPUT:** Return COMPLETE PowerShell script.",
+      "tags": "convert,python,powershell,tkinter,winforms,gui",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "cc-4",
+      "name": "PowerShell to Python Converter",
+      "text": "Act as a cross-language developer. Convert the provided PowerShell WinForms/WPF application to Python with tkinter or PyQt.\n\n**FRAMEWORK CHOICE:**\n- Simple apps → tkinter (built-in, no dependencies)\n- Complex apps → PyQt5/6 (more features, requires install)\n\n**CONVERSION MAPPING:**\n- [System.Windows.Forms.Form] → tk.Tk() or QMainWindow\n- Panel → Frame or QWidget\n- Button → tk.Button or QPushButton\n- TextBox → tk.Entry or QLineEdit\n- RichTextBox → tk.Text or QTextEdit\n- ComboBox → ttk.Combobox or QComboBox\n- DataGridView → ttk.Treeview or QTableWidget\n\n**CONSIDERATIONS:**\n- Replace .NET specific features\n- Adapt registry access → platform-independent storage\n- Handle Windows-specific paths\n- Convert BITS transfers → requests library\n- Admin elevation → Cross-platform alternatives\n\n**ENHANCEMENTS:**\n- Make cross-platform where possible\n- Add proper Python packaging\n- Include requirements.txt\n\n**OUTPUT:** Return COMPLETE Python application.",
+      "tags": "convert,powershell,python,winforms,tkinter,gui",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "cc-5",
+      "name": "Web App to Desktop Converter",
+      "text": "Act as a full-stack developer. Convert the provided web application (HTML/CSS/JS) to a native desktop application.\n\n**TARGET OPTIONS:**\n- Python + tkinter (no web dependencies)\n- PowerShell + WinForms (Windows native)\n- Electron wrapper (keep web tech)\n\n**CONVERSION APPROACH:**\n1. Analyze web app functionality\n2. Map UI components to native equivalents\n3. Convert JavaScript logic to target language\n4. Adapt CSS styling to native theming\n5. Replace browser APIs with desktop equivalents\n\n**PRESERVE:**\n- All functionality\n- UI layout structure\n- Color scheme and styling\n- User interactions\n\n**ENHANCE:**\n- Native file dialogs\n- System integration\n- Offline capability\n- Local storage\n\n**OUTPUT:** Return COMPLETE desktop application.",
+      "tags": "convert,webapp,desktop,html,python,powershell",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    }
+  ],
+  "Network & System Administration": [
+    {
+      "id": "ns-1",
+      "name": "Network Configuration Tool",
+      "text": "Act as a network administration tool developer. Create a PowerShell GUI for network configuration with:\n\n**FEATURES:**\n- Network adapter selection\n- Static IP assignment with validation\n- DHCP enable/restore\n- DNS server configuration\n- Gateway configuration\n- Subnet mask calculator\n\n**SAFETY FEATURES:**\n- Failsafe timeout (auto-revert to DHCP if not confirmed)\n- Configuration backup before changes\n- Rollback capability\n- Remote session detection/warning\n\n**UI:**\n- Professional dark theme\n- Clear adapter information display\n- IP address input with validation\n- Configuration preview before applying\n- Status indicators\n\n**ADVANCED:**\n- Multiple profiles (save/load)\n- Batch configuration\n- Network diagnostics\n- Ping/connectivity test\n\n**OUTPUT:** Return COMPLETE network configuration tool.",
+      "tags": "network,powershell,configuration,ip,admin,gui",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ns-2",
+      "name": "Service Manager Tool",
+      "text": "Act as a Windows system administration tool developer. Create a PowerShell GUI for service management:\n\n**FEATURES:**\n- List all services with status\n- Start/Stop/Restart services\n- Change startup type (Auto/Manual/Disabled)\n- Service state snapshots (save current state)\n- Restore from snapshot\n- Service dependencies view\n\n**SMART FEATURES:**\n- Categorize services (System, User, Third-party)\n- Identify safe-to-disable services\n- Performance impact indicators\n- Memory/CPU usage per service\n\n**UI:**\n- Searchable service list\n- Multi-select for batch operations\n- Color-coded status indicators\n- Context menu for quick actions\n- Dark professional theme\n\n**SAFETY:**\n- Confirmation for critical services\n- State backup before changes\n- Undo recent changes\n- Audit logging\n\n**OUTPUT:** Return COMPLETE service manager.",
+      "tags": "services,powershell,windows,admin,gui,management",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ns-3",
+      "name": "TeamViewer Deployment Script",
+      "text": "Act as an IT deployment specialist. Create a PowerShell script for automated TeamViewer Host deployment:\n\n**DEPLOYMENT:**\n- Silent download of TeamViewer Host MSI\n- Unattended installation with configuration\n- Assignment to TeamViewer account\n- Custom alias setting (PC name or serial)\n- Group assignment\n\n**CONFIGURATION:**\n- API integration for assignment\n- Custom branding options\n- Security settings\n- Access control configuration\n\n**NOTIFICATIONS:**\n- Webhook notification on completion (Discord, Teams, Slack)\n- Include device info (name, IP, TeamViewer ID)\n- Success/failure status\n\n**UI:**\n- Professional splash screen during install\n- Progress indicators\n- Status messages\n- Error handling with retry\n\n**OUTPUT:** Return COMPLETE deployment script.",
+      "tags": "teamviewer,deployment,powershell,remote,it,automation",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ns-4",
+      "name": "PC Setup Automation Script",
+      "text": "Act as an IT deployment specialist. Create a comprehensive PowerShell PC setup automation script:\n\n**SETUP TASKS:**\n- System configuration (hostname, timezone, power settings)\n- Windows Update management\n- Bloatware removal\n- Software installation (silent/unattended)\n- Firewall configuration\n- User account setup\n- Desktop customization (wallpaper, shortcuts)\n\n**ORGANIZATION:**\n- Modular task functions\n- Selectable tasks via GUI checkboxes\n- Preset profiles (Full, Quick, Custom)\n- Task dependencies handling\n\n**UI:**\n- Modern dark-themed GUI\n- Category tabs or sections\n- Progress tracking per task\n- Console log output\n- Task status indicators\n\n**FEATURES:**\n- Pre-flight checks\n- Admin elevation\n- Error recovery\n- Summary report\n- Reboot scheduling\n\n**OUTPUT:** Return COMPLETE setup automation script.",
+      "tags": "setup,deployment,powershell,automation,it,workstation",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    },
+    {
+      "id": "ns-5",
+      "name": "Windows 11 Compatibility Checker",
+      "text": "Act as a system requirements specialist. Create a PowerShell tool for Windows 11 hardware compatibility checking:\n\n**CHECKS:**\n- CPU compatibility (generation, cores, speed)\n- TPM version (1.2 vs 2.0)\n- Secure Boot status\n- RAM amount\n- Storage space and type\n- UEFI vs Legacy BIOS\n- DirectX 12 / WDDM 2.0\n- Display resolution\n\n**REPORTING:**\n- Pass/Fail for each requirement\n- Detailed system information\n- Recommendations for failed checks\n- Bypass options explanation (if applicable)\n- Export report to file\n\n**UI:**\n- Professional dark theme\n- Visual pass/fail indicators (green/red)\n- Detailed info expandable sections\n- Quick check vs full check modes\n\n**OUTPUT:** Return COMPLETE compatibility checker.",
+      "tags": "windows11,compatibility,powershell,hardware,checker,system",
+      "pinned": false,
+      "autoSend": false,
+      "usageCount": 0,
+      "lastUsed": null
+    }
+  ],
   "Specialized Domains": [
     {
       "id": "sd-1",
