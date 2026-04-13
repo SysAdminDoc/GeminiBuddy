@@ -1,5 +1,7 @@
 # Gemini Prompt Panel
 
+![Version](https://img.shields.io/badge/version-v42-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
+
 A highly configurable, auto-hiding, lockable, slide-out panel that remembers its position, with draggable prompts, themes, import/export, and more for Gemini.
 
 -----
