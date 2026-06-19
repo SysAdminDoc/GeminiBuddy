@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      42
+// @version      43
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -28,7 +28,27 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v42.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v43.0 loaded');
+
+    // --- TRUSTED TYPES POLICY ---
+    // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
+    // so the script does not silently fail.
+    let ttPolicy = null;
+    if (typeof trustedTypes !== 'undefined' && trustedTypes.createPolicy) {
+        try {
+            ttPolicy = trustedTypes.createPolicy('gbp', { createHTML: s => s });
+        } catch (e) {
+            // Policy may already exist; reuse it silently
+            console.warn('GeminiBuddy: Trusted Types policy creation skipped:', e.message);
+        }
+    }
+    function safeSetInnerHTML(element, html) {
+        if (ttPolicy) {
+            element.innerHTML = ttPolicy.createHTML(html);
+        } else {
+            element.innerHTML = html;
+        }
+    }
 
     // ###################################################################################
     // # --- CONSOLIDATED DATA.JS MODULE ---
@@ -63,6 +83,14 @@
             '--handle-color': '#28a745', '--handle-hover-color': '#34c759', '--favorite-color': '#FFD700', '--pin-color': '#34c759', '--ai-color': '#8A2BE2'
         }
     };
+    // Dark-mode sync helper: detect system color scheme
+    function getSystemThemeName() {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            return 'light';
+        }
+        return 'dark';
+    }
+
     const presetThemes = {
         dark: { ...defaultSettings.colors },
         light: {
@@ -93,6 +121,16 @@
     }
     async function saveSettings() {
         await GM_setValue(GM_SETTINGS_KEY, settings);
+    }
+
+    // Debounced save for high-frequency operations (drag, resize, scroll position)
+    let _debouncedSaveTimer = null;
+    function debouncedSaveSettings(delay = 300) {
+        if (_debouncedSaveTimer) clearTimeout(_debouncedSaveTimer);
+        _debouncedSaveTimer = setTimeout(() => {
+            saveSettings();
+            _debouncedSaveTimer = null;
+        }, delay);
     }
     function savePrompts() {
         GM_setValue(GM_PROMPTS_KEY, JSON.stringify(currentPrompts));
@@ -527,6 +565,9 @@
         .input-with-button input { flex-grow: 1; }
         .file-import-button { cursor: pointer; }
         #import-file-input { display: none; }
+        /* Prompt Preview Tooltip */
+        .prompt-preview-tooltip { position: fixed; z-index: 10002; max-width: 350px; max-height: 200px; overflow-y: auto; background: var(--panel-bg); color: var(--panel-text); border: 1px solid var(--panel-border); border-radius: 6px; padding: 10px 12px; font-size: calc(var(--base-font-size) - 1px); line-height: 1.5; white-space: pre-wrap; word-break: break-word; box-shadow: 0 4px 16px rgba(0,0,0,0.4); pointer-events: none; opacity: 0; transition: opacity 0.15s ease-in; }
+        .prompt-preview-tooltip.visible { opacity: 1; }
     `);
     }
 
@@ -784,6 +825,41 @@
     let isManuallyLocked = false, isFormActiveLock = false;
     let generationObserver = null, isGenerating = false;
 
+    // --- PROMPT PREVIEW TOOLTIP ---
+    let previewTooltip = null;
+    let previewTimeout = null;
+    function ensurePreviewTooltip() {
+        if (!previewTooltip) {
+            previewTooltip = document.createElement('div');
+            previewTooltip.className = 'prompt-preview-tooltip';
+            document.body.appendChild(previewTooltip);
+        }
+        return previewTooltip;
+    }
+    function showPreview(text, e) {
+        const tooltip = ensurePreviewTooltip();
+        const truncated = text.length > 500 ? text.substring(0, 500) + '...' : text;
+        tooltip.textContent = truncated;
+        const rect = e.target.closest('.prompt-button-wrapper').getBoundingClientRect();
+        tooltip.style.left = (rect.right + 10) + 'px';
+        tooltip.style.top = rect.top + 'px';
+        // Keep tooltip within viewport
+        requestAnimationFrame(() => {
+            const tooltipRect = tooltip.getBoundingClientRect();
+            if (tooltipRect.right > window.innerWidth) {
+                tooltip.style.left = (rect.left - tooltipRect.width - 10) + 'px';
+            }
+            if (tooltipRect.bottom > window.innerHeight) {
+                tooltip.style.top = (window.innerHeight - tooltipRect.height - 10) + 'px';
+            }
+        });
+        tooltip.classList.add('visible');
+    }
+    function hidePreview() {
+        if (previewTimeout) { clearTimeout(previewTimeout); previewTimeout = null; }
+        if (previewTooltip) previewTooltip.classList.remove('visible');
+    }
+
     // --- CORE HELPERS ---
     function showToast(message, duration = 2000, type = '') {
         toast.textContent = message;
@@ -815,12 +891,18 @@
 
     // --- THEME & WIDE MODE ---
     function applyTheme() {
+        // Auto-theme: resolve to light/dark based on system preference
+        let effectiveTheme = settings.themeName;
+        if (effectiveTheme === 'auto') {
+            const systemTheme = getSystemThemeName();
+            settings.colors = { ...presetThemes[systemTheme] };
+        }
         for (const [key, value] of Object.entries(settings.colors)) {
             document.documentElement.style.setProperty(key, value);
         }
         document.documentElement.style.setProperty('--panel-font', settings.fontFamily);
         document.documentElement.style.setProperty('--base-font-size', settings.baseFontSize);
-        panel.classList.toggle('glass-theme', settings.themeName === 'glass');
+        panel.classList.toggle('glass-theme', effectiveTheme === 'glass');
         panel.classList.toggle('condensed', settings.condensedMode);
     }
     function toggleFullWidth(enable) {
@@ -1000,6 +1082,12 @@
         const wrapper = document.createElement('div');
         wrapper.className = 'prompt-button-wrapper';
         wrapper.dataset.promptId = promptData.id;
+
+        // Hover preview
+        wrapper.addEventListener('mouseenter', (e) => {
+            previewTimeout = setTimeout(() => showPreview(promptData.text, e), 400);
+        });
+        wrapper.addEventListener('mouseleave', hidePreview);
 
         const btn = document.createElement('div');
         btn.className = 'prompt-button';
@@ -1490,7 +1578,7 @@
 
         const presetSelector = document.createElement('select');
         presetSelector.id = 'theme-preset-select';
-        const presets = { 'custom': 'Custom', 'dark': 'Dark (Default)', 'light': 'Light', 'glass': 'Glass', 'hacker': 'Hacker Green' };
+        const presets = { 'custom': 'Custom', 'auto': 'Auto (System)', 'dark': 'Dark (Default)', 'light': 'Light', 'glass': 'Glass', 'hacker': 'Hacker Green' };
         for (const [key, value] of Object.entries(presets)) {
             const option = document.createElement('option'); option.value = key; option.textContent = value;
             presetSelector.appendChild(option);
@@ -1498,7 +1586,13 @@
         presetSelector.value = settings.themeName;
         presetSelector.addEventListener('change', (e) => {
             const themeName = e.target.value;
-            if (presetThemes[themeName]) {
+            if (themeName === 'auto') {
+                settings.themeName = 'auto';
+                const systemTheme = getSystemThemeName();
+                settings.colors = { ...presetThemes[systemTheme] };
+                applyTheme();
+                saveSettings().then(() => populateSettingsModal(form));
+            } else if (presetThemes[themeName]) {
                 settings.colors = { ...presetThemes[themeName] };
                 settings.themeName = themeName;
                 applyTheme();
@@ -1798,7 +1892,7 @@
     }
     function showImportExportModal() {
         const modalBody = importExportModal.querySelector('.modal-body');
-        modalBody.innerHTML = ''; // Clear previous content
+        safeSetInnerHTML(modalBody, ''); // Clear previous content
 
         const exportSection = document.createElement('div');
         exportSection.className = 'form-section';
@@ -1936,7 +2030,7 @@
         }
 
         const btnGroup = aiEnhancerModal.querySelector('.button-group');
-        btnGroup.innerHTML = ''; // Clear old buttons
+        safeSetInnerHTML(btnGroup, ''); // Clear old buttons
         const enhanceBtn = createButtonWithIcon('Enhance', icons.sparkle.cloneNode(true));
         const replaceBtn = createButtonWithIcon('Accept & Replace', null);
         btnGroup.append(enhanceBtn, replaceBtn);
@@ -2259,7 +2353,7 @@
                 }
                 function onUp() {
                     document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp);
-                    document.body.style.userSelect = ''; saveSettings();
+                    document.body.style.userSelect = ''; debouncedSaveSettings();
                 }
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
             });
@@ -2367,18 +2461,168 @@
                 observer.disconnect();
             }
         });
-        sendButtonObserver.observe(document.body, { childList: true, subtree: true });
+        // Scope observer to main element (or fallback to body) to reduce overhead
+        const mainElement = document.querySelector('main') || document.body;
+        sendButtonObserver.observe(mainElement, { childList: true, subtree: true });
     }
-    function sendPromptToGemini(promptData, autoSend = false) {
+    // --- VARIABLE SUBSTITUTION ---
+    function resolveBuiltinVariables(text) {
+        const now = new Date();
+        const builtins = {
+            '{date}': now.toLocaleDateString(),
+            '{time}': now.toLocaleTimeString(),
+            '{datetime}': now.toLocaleString(),
+            '{title}': document.title || 'Untitled',
+            '{url}': window.location.href,
+        };
+        let result = text;
+        for (const [token, value] of Object.entries(builtins)) {
+            result = result.split(token).join(value);
+        }
+        return result;
+    }
+
+    async function resolveClipboardVariable(text) {
+        if (!text.includes('{clipboard}')) return text;
+        try {
+            const clipboardText = await navigator.clipboard.readText();
+            return text.split('{clipboard}').join(clipboardText);
+        } catch (err) {
+            showToast('Clipboard access denied. Leaving {clipboard} unresolved.', 3000, 'error');
+            return text;
+        }
+    }
+
+    function resolveSelectionVariable(text) {
+        if (!text.includes('{selection}')) return text;
+        const sel = window.getSelection();
+        const selectedText = sel ? sel.toString() : '';
+        if (!selectedText) {
+            showToast('No text selected. Leaving {selection} empty.', 2500, 'error');
+        }
+        return text.split('{selection}').join(selectedText);
+    }
+
+    function extractUserVariables(text) {
+        const regex = /\{\{([^}]+)\}\}/g;
+        const vars = [];
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            if (!vars.includes(match[1])) {
+                vars.push(match[1]);
+            }
+        }
+        return vars;
+    }
+
+    function showVariableDialog(userVars) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.style.display = 'flex';
+            const content = document.createElement('div');
+            content.className = 'modal-content';
+            content.style.maxWidth = '450px';
+            const header = document.createElement('div');
+            header.className = 'modal-header';
+            const title = document.createElement('h2');
+            title.className = 'modal-title';
+            title.textContent = 'Fill in Variables';
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'modal-close-btn';
+            closeBtn.appendChild(icons.close.cloneNode(true));
+            header.append(title, closeBtn);
+            const body = document.createElement('div');
+            body.className = 'modal-body';
+            const inputs = {};
+            userVars.forEach(varName => {
+                const section = document.createElement('div');
+                section.className = 'form-section';
+                const label = document.createElement('label');
+                label.textContent = varName;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `Value for {{${varName}}}`;
+                inputs[varName] = input;
+                section.append(label, input);
+                body.appendChild(section);
+            });
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'button-group';
+            btnGroup.style.marginTop = '15px';
+            const submitBtn = document.createElement('button');
+            submitBtn.className = 'gemini-prompt-panel-button copy-btn';
+            submitBtn.textContent = 'Insert Prompt';
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'gemini-prompt-panel-button';
+            cancelBtn.textContent = 'Cancel';
+            btnGroup.append(submitBtn, cancelBtn);
+            content.append(header, body, btnGroup);
+            overlay.appendChild(content);
+            document.body.appendChild(overlay);
+
+            const cleanup = (result) => {
+                overlay.remove();
+                resolve(result);
+            };
+            submitBtn.addEventListener('click', () => {
+                const values = {};
+                for (const [varName, input] of Object.entries(inputs)) {
+                    values[varName] = input.value;
+                }
+                cleanup(values);
+            });
+            cancelBtn.addEventListener('click', () => cleanup(null));
+            closeBtn.addEventListener('click', () => cleanup(null));
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(null); });
+            // Focus first input
+            const firstInput = Object.values(inputs)[0];
+            if (firstInput) setTimeout(() => firstInput.focus(), 50);
+        });
+    }
+
+    function applyUserVariables(text, values) {
+        let result = text;
+        for (const [varName, value] of Object.entries(values)) {
+            result = result.split(`{{${varName}}}`).join(value);
+        }
+        return result;
+    }
+
+    async function sendPromptToGemini(promptData, autoSend = false) {
         const editor = document.querySelector('div.ql-editor');
         if (editor) {
             promptData.usageCount = (promptData.usageCount || 0) + 1;
             promptData.lastUsed = Date.now();
             savePrompts();
 
+            let text = promptData.text;
+
+            // Resolve built-in variables
+            text = resolveBuiltinVariables(text);
+            text = resolveSelectionVariable(text);
+            text = await resolveClipboardVariable(text);
+
+            // Check for user-defined {{variables}}
+            const userVars = extractUserVariables(text);
+            if (userVars.length > 0) {
+                const values = await showVariableDialog(userVars);
+                if (values === null) {
+                    // User cancelled
+                    showToast('Prompt cancelled.', 1500);
+                    return;
+                }
+                text = applyUserVariables(text, values);
+                // Conditional auto-send: suppress auto-send if any {{var}} was left empty
+                const remainingVars = extractUserVariables(text);
+                if (remainingVars.length > 0) {
+                    autoSend = false;
+                }
+            }
+
             editor.focus();
             document.execCommand('selectAll', false, null);
-            document.execCommand('insertText', false, promptData.text);
+            document.execCommand('insertText', false, text);
             if (autoSend) {
                 setTimeout(() => {
                     const sendButton = document.querySelector('button.send-button, button[data-testid="send-button"]');
@@ -2400,7 +2644,7 @@
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
             panel.classList.remove('is-resizing'); document.body.style.cursor = 'default';
-            saveSettings();
+            debouncedSaveSettings();
             applySettingsAndTheme();
         };
         resizeHandle.addEventListener('mousedown', (e) => {
@@ -2448,6 +2692,15 @@
             }
         }, 500);
     }
+    // Listen for system dark/light mode changes and auto-update if theme is 'auto'
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (settings.themeName === 'auto' && panel) {
+                applyTheme();
+            }
+        });
+    }
+
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
         init();
     } else {
