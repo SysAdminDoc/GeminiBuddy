@@ -143,4 +143,14 @@ assert.strictEqual(
   false
 );
 
+assert.strictEqual(
+  hooks.textLooksLikeCanvasShortcut('Open in Canvas'),
+  true
+);
+
+assert.strictEqual(
+  hooks.textLooksLikeCanvasShortcut('Open model menu'),
+  false
+);
+
 console.log('userscript helpers passed');

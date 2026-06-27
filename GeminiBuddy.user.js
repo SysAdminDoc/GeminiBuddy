@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      45.0.0
+// @version      46.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -28,7 +28,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v45.0.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v46.0.0 loaded');
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -437,6 +437,7 @@
         #panel-action-buttons { margin-top: 8px; }
         .model-shortcut-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
         .model-shortcut-button { padding: 6px 4px; font-size: calc(var(--base-font-size) - 2px); background: var(--panel-header-bg); border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; min-width: 0; }
+        .canvas-shortcut-button { grid-column: 1 / -1; background: var(--panel-header-bg); border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; }
         .gemini-prompt-panel-button { border: 1px solid; color: white; padding: var(--btn-padding); border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: calc(var(--base-font-size) - 1px); font-weight: 500; cursor: pointer; transition: all .2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
         .gemini-prompt-panel-button:hover { filter: brightness(1.1); transform: translateY(-1px); }
         .gemini-prompt-panel-button:disabled { cursor: not-allowed; filter: brightness(0.6); }
@@ -839,7 +840,7 @@
     // --- DOM & STATE VARIABLES ---
     let panel, handle, promptFormModal, toast, resizeHandle, postNavigator, settingsModal, importExportModal, aiEnhancerModal, analyticsModal, versionHistoryModal, floatingMiniPanel, miniPanelTrigger;
     let leftHeaderControls, rightHeaderControls, actionGroup, modelShortcutGroup, panelModeSelector;
-    let searchAddContainer, copyResponseButton, copyCodeButton; // Chat-specific controls
+    let searchAddContainer, copyResponseButton, copyCodeButton, canvasButton; // Chat-specific controls
     let lockButton, arrowLeftBtn, arrowRightBtn, settingsBtn, analyticsBtn;
     let isManuallyLocked = false, isFormActiveLock = false;
     let generationObserver = null, isGenerating = false;
@@ -1057,6 +1058,7 @@
         } else {
             actionGroup.append(copyResponseButton, copyCodeButton);
         }
+        actionGroup.append(canvasButton);
     }
     function updateHandleHeight() {
         if (!panel || !handle || settings.handleStyle === 'edge') return;
@@ -2293,6 +2295,7 @@
             actionGroup = document.createElement('div'); actionGroup.className = 'button-group';
             copyResponseButton = createButtonWithIcon('Copy Response', null);
             copyCodeButton = createButtonWithIcon('Copy Code', null);
+            canvasButton = createButtonWithIcon('Canvas', null);
 
             searchAddContainer = document.createElement('div'); // Keep reference to hide/show
             searchAddContainer.className = 'search-add-container';
@@ -2320,6 +2323,7 @@
 
             copyResponseButton.classList.add('copy-btn');
             copyCodeButton.classList.add('copy-btn');
+            canvasButton.classList.add('canvas-shortcut-button');
             searchInput.placeholder = 'Search prompts...';
             navToTop.appendChild(icons.navToTop.cloneNode(true));
             navUp.appendChild(icons.navUp.cloneNode(true));
@@ -2435,8 +2439,8 @@
             }
         });
 
-        copyCodeButton.addEventListener('click', () => {
-            const allCodeBlocks = document.querySelectorAll('code-block');
+            copyCodeButton.addEventListener('click', () => {
+                const allCodeBlocks = document.querySelectorAll('code-block');
             if (allCodeBlocks.length > 0) {
                 const latestCodeBlock = allCodeBlocks[allCodeBlocks.length - 1];
                 const copyBtn = latestCodeBlock.querySelector('button[aria-label="Copy code"]');
@@ -2450,6 +2454,7 @@
                 showToast('No code block found to copy.', 2000, 'error');
             }
         });
+        canvasButton.addEventListener('click', () => activateGeminiCanvasMode());
     }
 
     function sleep(ms) {
@@ -2477,7 +2482,7 @@
         return !rect || rect.width > 0 || rect.height > 0 || (element.getClientRects?.().length || 0) > 0;
     }
 
-    function getModelCandidateText(element) {
+    function getPageCandidateText(element) {
         return [
             getElementText(element),
             element.getAttribute?.('aria-label'),
@@ -2485,6 +2490,10 @@
             element.getAttribute?.('data-test-id'),
             element.getAttribute?.('data-testid')
         ].filter(Boolean).join(' ');
+    }
+
+    function getModelCandidateText(element) {
+        return getPageCandidateText(element);
     }
 
     function getClickableModelElement(element) {
@@ -2555,6 +2564,57 @@
 
         option.click();
         showToast(`Switched to ${shortcut.label}.`, 2000, 'success');
+    }
+
+    function textLooksLikeCanvasShortcut(text) {
+        return /\bcanvas\b/i.test(normalizeModelText(text));
+    }
+
+    function findGeminiCanvasOption() {
+        const selectors = [
+            '[role="option"]',
+            '[role="menuitem"]',
+            'button',
+            '[role="button"]',
+            'mat-option',
+            'li',
+            'div'
+        ];
+        const candidates = [...new Set(selectors.flatMap(queryModelCandidates))];
+        const match = candidates.find(element => {
+            if (!isVisiblePageElement(element)) return false;
+            return textLooksLikeCanvasShortcut(getPageCandidateText(element));
+        });
+        return match ? getClickableModelElement(match) : null;
+    }
+
+    function findGeminiToolsButton() {
+        const candidates = queryModelCandidates('button, [role="button"]');
+        return candidates.find(element => {
+            if (!isVisiblePageElement(element)) return false;
+            const text = getPageCandidateText(element);
+            return /tools|tool|more|add|insert/i.test(text) && !/send|copy|prompt|settings|model/i.test(text);
+        });
+    }
+
+    async function activateGeminiCanvasMode() {
+        let canvasOption = findGeminiCanvasOption();
+        if (!canvasOption) {
+            const toolsButton = findGeminiToolsButton();
+            if (toolsButton) {
+                toolsButton.click();
+                await sleep(350);
+                canvasOption = findGeminiCanvasOption();
+            }
+        }
+
+        if (!canvasOption) {
+            showToast('Gemini Canvas option not found.', 3000, 'error');
+            return;
+        }
+
+        canvasOption.click();
+        showToast('Canvas mode selected for the current prompt.', 2500, 'success');
     }
 
     function initializePageObserver() {
@@ -2949,6 +3009,7 @@
             injectPreviousResponse,
             normalizeModelText,
             textMatchesModelShortcut,
+            textLooksLikeCanvasShortcut,
             MODEL_SHORTCUTS
         });
     }
