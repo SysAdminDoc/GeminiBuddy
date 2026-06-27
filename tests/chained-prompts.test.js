@@ -96,6 +96,10 @@ const sandbox = {
   clearInterval,
   requestAnimationFrame: callback => callback(),
   URL,
+  btoa: value => Buffer.from(String(value), 'binary').toString('base64'),
+  atob: value => Buffer.from(String(value), 'base64').toString('binary'),
+  escape,
+  unescape,
 };
 
 vm.createContext(sandbox);
@@ -212,5 +216,20 @@ assert.strictEqual(marketplaceGroups.Team.length, 1);
 assert.strictEqual(marketplaceGroups.Team[0].name, 'Summarize');
 assert.strictEqual(marketplaceGroups.Team[0].text, 'Summarize this.');
 assert.strictEqual(marketplaceGroups.Team[0].tags, 'team, summary');
+
+const sharePayload = { name: 'Shared', text: 'Use unicode: café', tags: 'team' };
+const encodedSharePayload = hooks.encodeSharePayload(sharePayload);
+assert.deepStrictEqual(
+  JSON.parse(JSON.stringify(hooks.decodeSharePayload(encodedSharePayload))),
+  sharePayload
+);
+assert.deepStrictEqual(
+  JSON.parse(JSON.stringify(hooks.getShareHashPayload(`#gbp-import=${encodedSharePayload}`))),
+  sharePayload
+);
+assert.strictEqual(
+  hooks.normalizeSharedPrompt({ title: 'Shared title', prompt: 'Prompt text' }).name,
+  'Shared title'
+);
 
 console.log('userscript helpers passed');

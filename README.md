@@ -1,6 +1,6 @@
 # Gemini Prompt Panel
 
-![Version](https://img.shields.io/badge/version-v51.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
+![Version](https://img.shields.io/badge/version-v52.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
 
 A highly configurable, auto-hiding, lockable, slide-out panel that remembers its position, with draggable prompts, themes, import/export, and more for Gemini.
 
@@ -78,6 +78,11 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
 
   * **What it does:** Imports remote curated prompt JSON lists with PromptCompanion-style fields.
   * **How it improves the target interface:** Teams can seed the panel from shared marketplace catalogs without manual JSON file handling.
+
+### **Share Links**
+
+  * **What it does:** Generates copyable prompt URLs that import a single prompt when opened on Gemini.
+  * **How it improves the target interface:** Individual prompts can be shared with teammates without exchanging full backup files.
 
 ### **Draggable Prompts**
 
@@ -223,6 +228,10 @@ Settings and prompts are stored in your browser's local storage using the follow
 -----
 
 ## Changelog
+
+### [52.0.0] - 2026-06-27
+
+  * Added per-prompt share links that import shared prompts from URL hashes.
 
 ### [51.0.0] - 2026-06-27
 

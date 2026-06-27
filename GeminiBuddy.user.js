@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      51.0.0
+// @version      52.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -29,7 +29,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v51.0.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v52.0.0 loaded');
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -1187,6 +1187,12 @@
             historyBtn.appendChild(icons.history.cloneNode(true));
             historyBtn.addEventListener('click', () => showVersionHistory(promptData));
             controls.appendChild(historyBtn);
+
+            const shareBtn = document.createElement('button');
+            shareBtn.title = "Copy Share Link";
+            shareBtn.appendChild(icons.webLink.cloneNode(true));
+            shareBtn.addEventListener('click', () => copyShareLinkForPrompt(promptData, categoryName));
+            controls.appendChild(shareBtn);
 
             if (settings.enableAIenhancer) {
                 const aiBtn = document.createElement('button');
@@ -2484,6 +2490,7 @@
             } else {
                 await loadAndDisplayPrompts();
             }
+            await importPromptFromShareLinkIfPresent();
             await runPendingGemPromptIfNeeded();
             applySettingsAndTheme();
             updateNavigator();
@@ -3303,6 +3310,10 @@
             normalizeGemUrl,
             extractGistIdFromUrl,
             normalizeMarketplacePrompts,
+            encodeSharePayload,
+            decodeSharePayload,
+            getShareHashPayload,
+            normalizeSharedPrompt,
             normalizeModelText,
             textMatchesModelShortcut,
             textLooksLikeCanvasShortcut,
@@ -3543,6 +3554,107 @@
                 }
             });
         });
+    }
+
+    function encodeSharePayload(payload) {
+        const json = JSON.stringify(payload);
+        return btoa(unescape(encodeURIComponent(json)))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/g, '');
+    }
+
+    function decodeSharePayload(encodedPayload) {
+        try {
+            const padded = String(encodedPayload || '').replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(String(encodedPayload || '').length / 4) * 4, '=');
+            return JSON.parse(decodeURIComponent(escape(atob(padded))));
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function getShareHashPayload(hash = window.location.hash) {
+        const match = String(hash || '').match(/[#&]gbp-import=([^&]+)/);
+        return match ? decodeSharePayload(match[1]) : null;
+    }
+
+    function createSharePromptPayload(promptData, categoryName) {
+        return {
+            name: promptData.name,
+            text: promptData.text,
+            tags: promptData.tags || '',
+            category: categoryName && categoryName !== 'Favorites' ? categoryName : 'Shared Prompts',
+            autoSend: !!promptData.autoSend,
+            pinned: !!promptData.pinned,
+            chainSteps: getPromptChainSteps(promptData),
+            gemUrl: getPromptGemUrl(promptData)
+        };
+    }
+
+    function normalizeSharedPrompt(payload) {
+        if (!payload || typeof payload !== 'object') return null;
+        const text = String(payload.text || payload.prompt || '').trim();
+        if (!text) return null;
+        return {
+            id: `shared-${Date.now()}`,
+            name: String(payload.name || payload.title || 'Shared Prompt').trim(),
+            text,
+            tags: normalizeTagsValue(payload.tags),
+            autoSend: !!payload.autoSend,
+            pinned: !!payload.pinned,
+            usageCount: 0,
+            lastUsed: null,
+            chainSteps: normalizeChainSteps(payload.chainSteps || payload.steps),
+            gemUrl: normalizeGemUrl(payload.gemUrl || payload.gemURL || payload.gem)
+        };
+    }
+
+    async function copyTextToClipboard(text) {
+        if (window.navigator.clipboard?.writeText) {
+            await window.navigator.clipboard.writeText(text);
+            return true;
+        }
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        return copied;
+    }
+
+    async function copyShareLinkForPrompt(promptData, categoryName) {
+        const payload = encodeSharePayload(createSharePromptPayload(promptData, categoryName));
+        const shareUrl = `${window.location.origin}${window.location.pathname}${window.location.search}#gbp-import=${payload}`;
+        try {
+            await copyTextToClipboard(shareUrl);
+            showToast('Share link copied.', 2000, 'success');
+        } catch (err) {
+            console.error('GeminiBuddy share link copy failed:', err);
+            showToast('Could not copy share link.', 2500, 'error');
+        }
+    }
+
+    async function importPromptFromShareLinkIfPresent() {
+        const payload = getShareHashPayload();
+        const prompt = normalizeSharedPrompt(payload);
+        if (!prompt) return;
+
+        const category = String(payload.category || 'Shared Prompts').trim() || 'Shared Prompts';
+        if (!currentPrompts[category]) {
+            currentPrompts[category] = [];
+            if (!settings.groupOrder.includes(category)) settings.groupOrder.push(category);
+        }
+        currentPrompts[category].push(prompt);
+        ensurePromptIDs(currentPrompts);
+        await Promise.all([savePrompts(), saveSettings()]);
+        renderAllPrompts();
+        if (window.history?.replaceState) {
+            window.history.replaceState(null, document.title, `${window.location.pathname}${window.location.search}`);
+        }
+        showToast('Shared prompt imported.', 2500, 'success');
     }
 
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
