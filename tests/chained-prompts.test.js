@@ -174,4 +174,19 @@ assert.strictEqual(
   ''
 );
 
+assert.strictEqual(
+  hooks.fileExtensionForMimeType('image/png'),
+  'png'
+);
+
+assert.strictEqual(
+  hooks.fileExtensionForMimeType('application/x-custom'),
+  'xcustom'
+);
+
+assert.strictEqual(
+  hooks.clipboardFileNameForType('image/jpeg', 1),
+  'gemini-clipboard-2.jpg'
+);
+
 console.log('userscript helpers passed');

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      48.0.0
+// @version      49.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -28,7 +28,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v48.0.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v49.0.0 loaded');
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -852,7 +852,7 @@
     // --- DOM & STATE VARIABLES ---
     let panel, handle, promptFormModal, toast, resizeHandle, postNavigator, settingsModal, importExportModal, aiEnhancerModal, analyticsModal, versionHistoryModal, floatingMiniPanel, miniPanelTrigger;
     let leftHeaderControls, rightHeaderControls, actionGroup, modelShortcutGroup, panelModeSelector;
-    let searchAddContainer, copyResponseButton, copyCodeButton, canvasButton, deepResearchButton; // Chat-specific controls
+    let searchAddContainer, copyResponseButton, copyCodeButton, canvasButton, deepResearchButton, attachmentPasteButton; // Chat-specific controls
     let lockButton, arrowLeftBtn, arrowRightBtn, settingsBtn, analyticsBtn;
     let isManuallyLocked = false, isFormActiveLock = false;
     let generationObserver = null, isGenerating = false;
@@ -1072,6 +1072,7 @@
         }
         actionGroup.append(canvasButton);
         actionGroup.append(deepResearchButton);
+        actionGroup.append(attachmentPasteButton);
     }
     function updateHandleHeight() {
         if (!panel || !handle || settings.handleStyle === 'edge') return;
@@ -2322,6 +2323,7 @@
             copyCodeButton = createButtonWithIcon('Copy Code', null);
             canvasButton = createButtonWithIcon('Canvas', null);
             deepResearchButton = createButtonWithIcon('Deep Research', null);
+            attachmentPasteButton = createButtonWithIcon('Paste Attachment', null);
 
             searchAddContainer = document.createElement('div'); // Keep reference to hide/show
             searchAddContainer.className = 'search-add-container';
@@ -2351,6 +2353,7 @@
             copyCodeButton.classList.add('copy-btn');
             canvasButton.classList.add('canvas-shortcut-button');
             deepResearchButton.classList.add('deep-research-shortcut-button');
+            attachmentPasteButton.classList.add('deep-research-shortcut-button');
             searchInput.placeholder = 'Search prompts...';
             navToTop.appendChild(icons.navToTop.cloneNode(true));
             navUp.appendChild(icons.navUp.cloneNode(true));
@@ -2485,6 +2488,7 @@
         });
         canvasButton.addEventListener('click', () => activateGeminiCanvasMode());
         deepResearchButton.addEventListener('click', () => activateGeminiDeepResearch());
+        attachmentPasteButton.addEventListener('click', () => pasteClipboardAttachmentIntoGemini());
     }
 
     function sleep(ms) {
@@ -2695,6 +2699,100 @@
             showToast('Deep Research launched.', 2500, 'success');
         } else {
             showToast('Deep Research selected. Add a prompt to launch.', 3000, 'success');
+        }
+    }
+
+    function fileExtensionForMimeType(mimeType) {
+        const normalizedType = String(mimeType || '').toLowerCase();
+        const knownExtensions = {
+            'image/png': 'png',
+            'image/jpeg': 'jpg',
+            'image/webp': 'webp',
+            'image/gif': 'gif',
+            'application/pdf': 'pdf',
+            'text/plain': 'txt'
+        };
+        if (knownExtensions[normalizedType]) return knownExtensions[normalizedType];
+        const subtype = normalizedType.split('/')[1] || 'bin';
+        return subtype.replace(/[^a-z0-9]+/g, '') || 'bin';
+    }
+
+    function clipboardFileNameForType(mimeType, index) {
+        return `gemini-clipboard-${index + 1}.${fileExtensionForMimeType(mimeType)}`;
+    }
+
+    async function readClipboardFiles() {
+        if (!window.navigator.clipboard?.read) {
+            throw new Error('Clipboard file reads are not supported by this browser.');
+        }
+
+        const clipboardItems = await window.navigator.clipboard.read();
+        const files = [];
+        for (const item of clipboardItems) {
+            const fileTypes = item.types.filter(type => !type.startsWith('text/html') && !type.startsWith('text/plain'));
+            for (const type of fileTypes) {
+                const blob = await item.getType(type);
+                files.push(new File([blob], clipboardFileNameForType(type, files.length), { type }));
+            }
+        }
+        return files;
+    }
+
+    function createDataTransferWithFiles(files) {
+        if (typeof DataTransfer === 'undefined') return null;
+        const dataTransfer = new DataTransfer();
+        files.forEach(file => dataTransfer.items.add(file));
+        return dataTransfer;
+    }
+
+    function findGeminiAttachmentTarget() {
+        return document.querySelector('main rich-textarea')
+            || getGeminiEditor()
+            || document.querySelector('main .input-area-container')
+            || document.querySelector('main');
+    }
+
+    function dispatchAttachmentEvents(target, dataTransfer) {
+        let dispatched = false;
+        if (typeof ClipboardEvent !== 'undefined') {
+            const pasteEvent = new ClipboardEvent('paste', {
+                bubbles: true,
+                cancelable: true,
+                clipboardData: dataTransfer
+            });
+            dispatched = target.dispatchEvent(pasteEvent) || dispatched;
+        }
+        if (typeof DragEvent !== 'undefined') {
+            const dropEvent = new DragEvent('drop', {
+                bubbles: true,
+                cancelable: true,
+                dataTransfer
+            });
+            dispatched = target.dispatchEvent(dropEvent) || dispatched;
+        }
+        return dispatched;
+    }
+
+    async function pasteClipboardAttachmentIntoGemini() {
+        try {
+            const files = await readClipboardFiles();
+            if (files.length === 0) {
+                showToast('Clipboard does not contain a file or image.', 3000, 'error');
+                return;
+            }
+
+            const target = findGeminiAttachmentTarget();
+            const dataTransfer = createDataTransferWithFiles(files);
+            if (!target || !dataTransfer) {
+                showToast('Gemini upload target is not available.', 3000, 'error');
+                return;
+            }
+
+            dispatchAttachmentEvents(target, dataTransfer);
+            showToast(`Pasted ${files.length} attachment${files.length === 1 ? '' : 's'} from clipboard.`, 2500, 'success');
+        } catch (err) {
+            console.error('GeminiBuddy attachment paste failed:', err);
+            showToast(err.message || 'Could not read clipboard attachment.', 3500, 'error');
         }
     }
 
@@ -3162,6 +3260,8 @@
             textMatchesModelShortcut,
             textLooksLikeCanvasShortcut,
             textLooksLikeDeepResearchShortcut,
+            fileExtensionForMimeType,
+            clipboardFileNameForType,
             MODEL_SHORTCUTS
         });
     }
