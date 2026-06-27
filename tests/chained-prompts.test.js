@@ -95,6 +95,7 @@ const sandbox = {
   setInterval,
   clearInterval,
   requestAnimationFrame: callback => callback(),
+  URL,
 };
 
 vm.createContext(sandbox);
@@ -151,6 +152,16 @@ assert.strictEqual(
 assert.strictEqual(
   hooks.textLooksLikeCanvasShortcut('Open model menu'),
   false
+);
+
+assert.strictEqual(
+  hooks.normalizeGemUrl('/gem/example-gem'),
+  'https://gemini.google.com/gem/example-gem'
+);
+
+assert.strictEqual(
+  hooks.normalizeGemUrl('https://example.com/gem/example-gem'),
+  ''
 );
 
 console.log('userscript helpers passed');

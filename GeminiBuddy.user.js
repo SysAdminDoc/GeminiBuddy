@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      46.0.0
+// @version      47.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -28,7 +28,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v46.0.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v47.0.0 loaded');
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -60,6 +60,7 @@
     const GM_PROMPTS_KEY = 'gemini_custom_prompts_v6';
     const GM_SETTINGS_KEY = 'gemini_panel_settings_v24';
     const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
+    const GM_PENDING_GEM_PROMPT_KEY = 'gemini_pending_gem_prompt_v1';
     const FULL_WIDTH_STYLE_ID = 'gemini-panel-full-width-style';
 
     // --- STATE & SETTINGS ---
@@ -637,6 +638,17 @@
         chainInput.placeholder = 'Step 2 using {previous_response}\n---\nStep 3';
         chainSection.append(chainLabel, chainInput);
         form.appendChild(chainSection);
+        const gemUrlSection = document.createElement('div');
+        gemUrlSection.className = 'form-section';
+        const gemUrlLabel = document.createElement('label');
+        gemUrlLabel.htmlFor = 'prompt-gem-url-input';
+        gemUrlLabel.textContent = 'Gem URL';
+        const gemUrlInput = document.createElement('input');
+        gemUrlInput.type = 'url';
+        gemUrlInput.id = 'prompt-gem-url-input';
+        gemUrlInput.placeholder = 'https://gemini.google.com/gem/...';
+        gemUrlSection.append(gemUrlLabel, gemUrlInput);
+        form.appendChild(gemUrlSection);
         const tagsSection = document.createElement('div');
         tagsSection.className = 'form-section';
         const tagsLabel = document.createElement('label');
@@ -1143,6 +1155,12 @@
             chainBadge.textContent = `Chain ${chainStepCount + 1}`;
             btn.appendChild(chainBadge);
         }
+        if (getPromptGemUrl(promptData)) {
+            const gemBadge = document.createElement('span');
+            gemBadge.className = 'prompt-chain-badge';
+            gemBadge.textContent = 'Gem';
+            btn.appendChild(gemBadge);
+        }
 
         if (!isMini) {
             const controls = document.createElement('div');
@@ -1494,8 +1512,9 @@
             const promptText = promptData.text.toLowerCase();
             const promptTags = (promptData.tags || "").toLowerCase();
             const promptChain = getPromptChainSteps(promptData).join(' ').toLowerCase();
+            const promptGemUrl = (promptData.gemUrl || '').toLowerCase();
 
-            const isVisible = promptName.includes(searchTerm) || promptText.includes(searchTerm) || promptTags.includes(searchTerm) || promptChain.includes(searchTerm);
+            const isVisible = promptName.includes(searchTerm) || promptText.includes(searchTerm) || promptTags.includes(searchTerm) || promptChain.includes(searchTerm) || promptGemUrl.includes(searchTerm);
             wrapper.style.display = isVisible ? 'flex' : 'none';
         });
     }
@@ -1831,6 +1850,7 @@
         const nameInput = promptFormModal.querySelector('#prompt-name-input');
         const textInput = promptFormModal.querySelector('#prompt-text-input');
         const chainStepsInput = promptFormModal.querySelector('#prompt-chain-steps-input');
+        const gemUrlInput = promptFormModal.querySelector('#prompt-gem-url-input');
         const tagsInput = promptFormModal.querySelector('#prompt-tags-input');
         const categorySelect = promptFormModal.querySelector('#prompt-category-select');
         const newCategoryInput = promptFormModal.querySelector('#prompt-new-category-input');
@@ -1858,6 +1878,7 @@
             nameInput.value = promptToEdit.name;
             textInput.value = promptToEdit.text;
             chainStepsInput.value = formatChainStepsForInput(promptToEdit.chainSteps);
+            gemUrlInput.value = promptToEdit.gemUrl || '';
             tagsInput.value = promptToEdit.tags || '';
             categorySelect.value = categoryName;
             autoSendInput.checked = promptToEdit.autoSend;
@@ -1867,6 +1888,7 @@
             title.textContent = 'Add New Prompt';
             idInput.value = '';
             chainStepsInput.value = '';
+            gemUrlInput.value = '';
             categorySelect.value = categoryName || (settings.groupOrder || [])[0] || '__createnew__';
             if (categorySelect.value === '__createnew__') newCategoryInput.style.display = 'block';
             favoriteInput.checked = false;
@@ -1879,14 +1901,16 @@
             const newName = nameInput.value.trim();
             const newText = textInput.value.trim();
             const chainSteps = parseChainStepsInput(chainStepsInput.value);
+            const normalizedGemUrl = gemUrlInput.value.trim() ? normalizeGemUrl(gemUrlInput.value.trim()) : '';
 
             if (promptToEdit && promptToEdit.text !== newText) {
                 addHistoryEntry(id, promptToEdit.text);
             }
 
-            const newPrompt = { id, name: newName, text: newText, chainSteps, tags: tagsInput.value.trim(), autoSend: autoSendInput.checked, pinned: pinInput.checked, usageCount: promptToEdit ? promptToEdit.usageCount : 0, lastUsed: promptToEdit ? promptToEdit.lastUsed : null };
+            const newPrompt = { id, name: newName, text: newText, chainSteps, gemUrl: normalizedGemUrl, tags: tagsInput.value.trim(), autoSend: autoSendInput.checked, pinned: pinInput.checked, usageCount: promptToEdit ? promptToEdit.usageCount : 0, lastUsed: promptToEdit ? promptToEdit.lastUsed : null };
             let targetCategory = (categorySelect.value === '__createnew__') ? newCategoryInput.value.trim() : categorySelect.value;
             if (!newPrompt.name || !newPrompt.text || !targetCategory) { showToast("Name, Text, and Group are required.", 2500, 'error'); return; }
+            if (gemUrlInput.value.trim() && !normalizedGemUrl) { showToast("Gem URL must be on gemini.google.com and include /gem/.", 3000, 'error'); return; }
             if (targetCategory === "Favorites") { showToast("Cannot add prompts directly to Favorites.", 2500, 'error'); return; }
 
             const isNewCategory = !currentPrompts[targetCategory];
@@ -2404,10 +2428,12 @@
 
             initResizeFunctionality();
             if (settings.gistURL) {
-                await syncFromGist().then(synced => { if(!synced) loadAndDisplayPrompts(); else loadAndDisplayPrompts(true); }).catch(() => loadAndDisplayPrompts());
+                const synced = await syncFromGist().catch(() => false);
+                await loadAndDisplayPrompts(!!synced);
             } else {
                 await loadAndDisplayPrompts();
             }
+            await runPendingGemPromptIfNeeded();
             applySettingsAndTheme();
             updateNavigator();
         } catch (error) {
@@ -2820,6 +2846,73 @@
         return normalizeChainSteps(promptData && promptData.chainSteps);
     }
 
+    function normalizeGemUrl(value) {
+        if (!value) return '';
+        try {
+            const url = new URL(String(value).trim(), window.location.href);
+            if (url.hostname !== 'gemini.google.com') return '';
+            if (!url.pathname.toLowerCase().includes('/gem/')) return '';
+            return url.href;
+        } catch (err) {
+            return '';
+        }
+    }
+
+    function getPromptGemUrl(promptData) {
+        return normalizeGemUrl(promptData && promptData.gemUrl);
+    }
+
+    function isCurrentGemUrl(gemUrl) {
+        const normalizedTarget = normalizeGemUrl(gemUrl);
+        const normalizedCurrent = normalizeGemUrl(window.location.href);
+        return normalizedTarget && normalizedCurrent && normalizedTarget === normalizedCurrent;
+    }
+
+    function markPromptUsed(promptData) {
+        promptData.usageCount = (promptData.usageCount || 0) + 1;
+        promptData.lastUsed = Date.now();
+        savePrompts();
+    }
+
+    async function queueGemPromptNavigation(promptData, autoSend = false) {
+        const gemUrl = getPromptGemUrl(promptData);
+        if (!gemUrl) {
+            showToast('Gem URL must be on gemini.google.com and include /gem/.', 3000, 'error');
+            return false;
+        }
+
+        const pendingPrompt = { ...promptData, gemUrl: '' };
+        await GM_setValue(GM_PENDING_GEM_PROMPT_KEY, JSON.stringify({
+            promptData: pendingPrompt,
+            autoSend,
+            createdAt: Date.now()
+        }));
+        showToast('Opening Gem...', 1500, 'success');
+        window.location.assign(gemUrl);
+        return true;
+    }
+
+    async function runPendingGemPromptIfNeeded() {
+        const raw = await GM_getValue(GM_PENDING_GEM_PROMPT_KEY, '');
+        if (!raw) return;
+
+        await GM_setValue(GM_PENDING_GEM_PROMPT_KEY, '');
+        let payload = null;
+        try {
+            payload = JSON.parse(raw);
+        } catch (err) {
+            return;
+        }
+
+        if (!payload?.promptData || Date.now() - (payload.createdAt || 0) > 300000) {
+            return;
+        }
+
+        setTimeout(() => {
+            sendPromptToGemini(payload.promptData, !!payload.autoSend, { countUsage: false, skipGemTrigger: true });
+        }, 700);
+    }
+
     function injectPreviousResponse(stepText, previousResponse) {
         const responseText = String(previousResponse || '').trim();
         let result = String(stepText || '');
@@ -2976,13 +3069,11 @@
         return true;
     }
 
-    async function runChainedPrompt(promptData) {
+    async function runChainedPrompt(promptData, options = {}) {
         const steps = [promptData.text, ...getPromptChainSteps(promptData)].map(step => String(step || '').trim()).filter(Boolean);
         if (steps.length === 0) return;
 
-        promptData.usageCount = (promptData.usageCount || 0) + 1;
-        promptData.lastUsed = Date.now();
-        savePrompts();
+        if (options.countUsage !== false) markPromptUsed(promptData);
 
         let previousResponse = '';
         try {
@@ -3007,6 +3098,7 @@
             normalizeChainSteps,
             formatChainStepsForInput,
             injectPreviousResponse,
+            normalizeGemUrl,
             normalizeModelText,
             textMatchesModelShortcut,
             textLooksLikeCanvasShortcut,
@@ -3014,15 +3106,20 @@
         });
     }
 
-    async function sendPromptToGemini(promptData, autoSend = false) {
-        if (getPromptChainSteps(promptData).length > 0) {
-            await runChainedPrompt(promptData);
+    async function sendPromptToGemini(promptData, autoSend = false, options = {}) {
+        const gemUrl = getPromptGemUrl(promptData);
+        if (!options.skipGemTrigger && gemUrl && !isCurrentGemUrl(gemUrl)) {
+            if (options.countUsage !== false) markPromptUsed(promptData);
+            await queueGemPromptNavigation(promptData, autoSend);
             return;
         }
 
-        promptData.usageCount = (promptData.usageCount || 0) + 1;
-        promptData.lastUsed = Date.now();
-        savePrompts();
+        if (getPromptChainSteps(promptData).length > 0) {
+            await runChainedPrompt(promptData, options);
+            return;
+        }
+
+        if (options.countUsage !== false) markPromptUsed(promptData);
         await insertPromptIntoGemini(promptData.text, autoSend);
     }
     function initResizeFunctionality() {
