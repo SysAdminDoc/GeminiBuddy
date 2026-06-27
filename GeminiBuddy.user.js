@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      49.0.0
+// @version      50.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -28,7 +28,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v49.0.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v50.0.0 loaded');
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -75,7 +75,7 @@
         themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
         fontFamily: 'Verdana, sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
         collapsedCategories: [], favorites: [], groupOrder: [], tagOrder: [], initiallyCollapsed: false, copyButtonOrderSwapped: false,
-        showTags: true, showPins: true, enableAIenhancer: true, geminiAPIKey: '', gistURL: '',
+        showTags: true, showPins: true, enableAIenhancer: true, geminiAPIKey: '', gistURL: '', gistToken: '', gistFileName: 'gemini-prompts.json',
         enableMiniMode: true, groupByTags: true, autoCopyCodeOnCompletion: true,
         groupColors: {},
         colors: {
@@ -211,23 +211,36 @@
 
 
     // --- SYNC FEATURES ---
+    function extractGistIdFromUrl(url) {
+        const gistIdMatch = String(url || '').match(/gist\.github\.com\/(?:[a-zA-Z0-9_-]+\/)?([a-f0-9]+)/i);
+        return gistIdMatch ? gistIdMatch[1] : '';
+    }
+
+    function getGistHeaders(includeAuth = false) {
+        const headers = { 'Accept': 'application/vnd.github+json' };
+        if (includeAuth && settings.gistToken) {
+            headers.Authorization = `Bearer ${settings.gistToken}`;
+        }
+        return headers;
+    }
+
     async function syncFromGist(isManual = false) {
         if (!settings.gistURL) {
             if (isManual) showToast("Please provide a Gist URL in settings.", 2500, 'error');
             return;
         }
-        const gistIdMatch = settings.gistURL.match(/gist\.github\.com\/[a-zA-Z0-9_-]+\/([a-f0-9]+)/);
-        if (!gistIdMatch) {
+        const gistId = extractGistIdFromUrl(settings.gistURL);
+        if (!gistId) {
             if (isManual) showToast("Invalid Gist URL format.", 2500, 'error');
             return;
         }
-        const gistId = gistIdMatch[1];
         if (isManual) showToast("Syncing from Gist...", 2000);
 
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "GET",
                 url: `https://api.github.com/gists/${gistId}`,
+                headers: getGistHeaders(true),
                 onload: function(response) {
                     try {
                         const gistData = JSON.parse(response.responseText);
@@ -1698,6 +1711,25 @@
         gistContainer.className = 'input-with-button';
         gistContainer.append(gistUrlInput, syncBtn);
         dataContent.appendChild(createSettingRow('gist-url-input', 'GitHub Gist Sync URL', 'Sync prompts across browsers (replaces all local prompts).', gistContainer));
+        const gistTokenInput = document.createElement('input');
+        gistTokenInput.type = 'password';
+        gistTokenInput.id = 'gist-token-input';
+        gistTokenInput.placeholder = 'GitHub token with gist scope';
+        gistTokenInput.value = settings.gistToken || '';
+        gistTokenInput.addEventListener('change', (e) => { settings.gistToken = e.target.value.trim(); saveSettings(); });
+        dataContent.appendChild(createSettingRow('gist-token-input', 'GitHub Gist Token', 'Required only for pushing local prompts back to a Gist.', gistTokenInput));
+        const gistFileNameInput = document.createElement('input');
+        gistFileNameInput.type = 'text';
+        gistFileNameInput.id = 'gist-file-name-input';
+        gistFileNameInput.placeholder = 'gemini-prompts.json';
+        gistFileNameInput.value = settings.gistFileName || 'gemini-prompts.json';
+        gistFileNameInput.addEventListener('change', (e) => { settings.gistFileName = e.target.value.trim() || 'gemini-prompts.json'; saveSettings(); });
+        const pushGistBtn = createButtonWithIcon('Push to Gist', icons.sync.cloneNode(true));
+        pushGistBtn.addEventListener('click', () => syncToGist().catch(err => console.error('Gist push failed:', err)));
+        const gistPushContainer = document.createElement('div');
+        gistPushContainer.className = 'input-with-button';
+        gistPushContainer.append(gistFileNameInput, pushGistBtn);
+        dataContent.appendChild(createSettingRow('gist-file-name-input', 'Gist File Name', 'File to update when pushing prompts to Gist.', gistPushContainer));
         const importExportButton = createButtonWithIcon('Local Import / Export', icons.importExport.cloneNode(true));
         importExportButton.classList.add('copy-btn');
         importExportButton.style.gridColumn = '1 / -1';
@@ -3256,6 +3288,7 @@
             formatChainStepsForInput,
             injectPreviousResponse,
             normalizeGemUrl,
+            extractGistIdFromUrl,
             normalizeModelText,
             textMatchesModelShortcut,
             textLooksLikeCanvasShortcut,
@@ -3349,6 +3382,56 @@
             if (settings.themeName === 'auto' && panel) {
                 applyTheme();
             }
+        });
+    }
+
+    async function syncToGist() {
+        if (!settings.gistURL) {
+            showToast("Please provide a Gist URL in settings.", 2500, 'error');
+            return;
+        }
+        if (!settings.gistToken) {
+            showToast("A GitHub token is required to push to Gist.", 3000, 'error');
+            return;
+        }
+        const gistId = extractGistIdFromUrl(settings.gistURL);
+        if (!gistId) {
+            showToast("Invalid Gist URL format.", 2500, 'error');
+            return;
+        }
+
+        const fileName = (settings.gistFileName || 'gemini-prompts.json').trim();
+        showToast("Pushing prompts to Gist...", 2000);
+
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "PATCH",
+                url: `https://api.github.com/gists/${gistId}`,
+                headers: {
+                    ...getGistHeaders(true),
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({
+                    files: {
+                        [fileName]: {
+                            content: JSON.stringify(currentPrompts, null, 2)
+                        }
+                    }
+                }),
+                onload: function(response) {
+                    if (response.status >= 200 && response.status < 300) {
+                        showToast("Gist push complete.", 2000, 'success');
+                        resolve(true);
+                        return;
+                    }
+                    showToast(`Gist push failed: HTTP ${response.status}`, 3500, 'error');
+                    reject(new Error(response.responseText || `HTTP ${response.status}`));
+                },
+                onerror: function(response) {
+                    showToast("Error pushing to Gist.", 3000, 'error');
+                    reject(new Error(response.statusText || "Gist push failed."));
+                }
+            });
         });
     }
 

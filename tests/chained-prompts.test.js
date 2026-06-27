@@ -189,4 +189,14 @@ assert.strictEqual(
   'gemini-clipboard-2.jpg'
 );
 
+assert.strictEqual(
+  hooks.extractGistIdFromUrl('https://gist.github.com/user/abcdef1234567890'),
+  'abcdef1234567890'
+);
+
+assert.strictEqual(
+  hooks.extractGistIdFromUrl('https://example.com/user/abcdef1234567890'),
+  ''
+);
+
 console.log('userscript helpers passed');
