@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      43
+// @version      44.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -28,7 +28,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v43.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v44.0.0 loaded');
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -457,6 +457,7 @@
         .ai-btn { color: var(--ai-color); }
         .prompt-tags-container { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px 8px; }
         .prompt-tag { background: var(--tag-bg); color: var(--tag-text); padding: 2px 6px; border-radius: 4px; font-size: calc(var(--base-font-size) - 3px); }
+        .prompt-chain-badge { flex-shrink: 0; border: 1px solid var(--ai-color); color: var(--ai-color); border-radius: 4px; padding: 1px 5px; font-size: calc(var(--base-font-size) - 4px); font-weight: 700; }
         #custom-prompts-container { display:flex; flex-direction:column; max-height: none; }
         .search-add-container { padding: 0 0 10px; display: flex; flex-direction: column; gap: 8px; }
         #prompt-search-input { width: 100%; background: var(--input-bg); color: var(--input-text); border-radius: 4px; padding: 6px 8px; font-size: calc(var(--base-font-size) - 1px); box-sizing: border-box; font-family: var(--panel-font); border: 2px solid transparent; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
@@ -521,6 +522,7 @@
         .form-section label, .settings-section label, .form-row label { font-size: var(--base-font-size); font-weight: 500; }
         .form-section input, .form-section textarea, .form-section select { width: 100%; background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); border-radius: 4px; padding: 8px; font-size: var(--base-font-size); box-sizing: border-box; font-family: var(--panel-font); }
         .form-section textarea { min-height: 120px; resize: vertical; }
+        #prompt-chain-steps-input { min-height: 90px; }
         .form-checkbox { display: flex; align-items: center; gap: 10px; font-size: var(--base-font-size); }
         .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
@@ -617,6 +619,16 @@
         textInput.required = true;
         textSection.append(textLabel, textInput);
         form.appendChild(textSection);
+        const chainSection = document.createElement('div');
+        chainSection.className = 'form-section';
+        const chainLabel = document.createElement('label');
+        chainLabel.htmlFor = 'prompt-chain-steps-input';
+        chainLabel.textContent = 'Follow-Up Steps';
+        const chainInput = document.createElement('textarea');
+        chainInput.id = 'prompt-chain-steps-input';
+        chainInput.placeholder = 'Step 2 using {previous_response}\n---\nStep 3';
+        chainSection.append(chainLabel, chainInput);
+        form.appendChild(chainSection);
         const tagsSection = document.createElement('div');
         tagsSection.className = 'form-section';
         const tagsLabel = document.createElement('label');
@@ -818,7 +830,7 @@
     // ###################################################################################
 
     // --- DOM & STATE VARIABLES ---
-    let panel, handle, promptFormModal, toast, resizeHandle, navigator, settingsModal, importExportModal, aiEnhancerModal, analyticsModal, versionHistoryModal, floatingMiniPanel, miniPanelTrigger;
+    let panel, handle, promptFormModal, toast, resizeHandle, postNavigator, settingsModal, importExportModal, aiEnhancerModal, analyticsModal, versionHistoryModal, floatingMiniPanel, miniPanelTrigger;
     let leftHeaderControls, rightHeaderControls, actionGroup, panelModeSelector;
     let searchAddContainer, copyResponseButton, copyCodeButton; // Chat-specific controls
     let lockButton, arrowLeftBtn, arrowRightBtn, settingsBtn, analyticsBtn;
@@ -935,7 +947,7 @@
         handle.classList.toggle('right-side-handle', p === 'right');
         handle.classList.toggle('edge', settings.handleStyle === 'edge');
         resizeHandle.className = `gemini-resize-handle ${settings.position === 'right' ? 'left-handle' : 'right-handle'}`;
-        navigator.style.top = settings.topOffset;
+        postNavigator.style.top = settings.topOffset;
         panel.style.setProperty('--panel-width', `${settings.panelWidth}px`);
         panel.style.setProperty('--handle-width', `${settings.handleWidth}px`);
         handle.style.width = `${settings.handleWidth}px`;
@@ -990,7 +1002,7 @@
             copyBtn.appendChild(icons.copy.cloneNode(true));
             copyBtn.appendChild(document.createTextNode(' Copy Prompt'));
             copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(item.prompt).then(() => {
+                window.navigator.clipboard.writeText(item.prompt).then(() => {
                     showToast('VEO prompt copied!', 2000, 'success');
                 });
             });
@@ -1114,6 +1126,13 @@
         nameSpan.className = 'prompt-button-name';
         nameSpan.textContent = promptData.name;
         btn.appendChild(nameSpan);
+        const chainStepCount = getPromptChainSteps(promptData).length;
+        if (chainStepCount > 0) {
+            const chainBadge = document.createElement('span');
+            chainBadge.className = 'prompt-chain-badge';
+            chainBadge.textContent = `Chain ${chainStepCount + 1}`;
+            btn.appendChild(chainBadge);
+        }
 
         if (!isMini) {
             const controls = document.createElement('div');
@@ -1464,8 +1483,9 @@
             const promptName = promptData.name.toLowerCase();
             const promptText = promptData.text.toLowerCase();
             const promptTags = (promptData.tags || "").toLowerCase();
+            const promptChain = getPromptChainSteps(promptData).join(' ').toLowerCase();
 
-            const isVisible = promptName.includes(searchTerm) || promptText.includes(searchTerm) || promptTags.includes(searchTerm);
+            const isVisible = promptName.includes(searchTerm) || promptText.includes(searchTerm) || promptTags.includes(searchTerm) || promptChain.includes(searchTerm);
             wrapper.style.display = isVisible ? 'flex' : 'none';
         });
     }
@@ -1800,6 +1820,7 @@
         const idInput = promptFormModal.querySelector('#prompt-id-input');
         const nameInput = promptFormModal.querySelector('#prompt-name-input');
         const textInput = promptFormModal.querySelector('#prompt-text-input');
+        const chainStepsInput = promptFormModal.querySelector('#prompt-chain-steps-input');
         const tagsInput = promptFormModal.querySelector('#prompt-tags-input');
         const categorySelect = promptFormModal.querySelector('#prompt-category-select');
         const newCategoryInput = promptFormModal.querySelector('#prompt-new-category-input');
@@ -1826,6 +1847,7 @@
             idInput.value = promptToEdit.id;
             nameInput.value = promptToEdit.name;
             textInput.value = promptToEdit.text;
+            chainStepsInput.value = formatChainStepsForInput(promptToEdit.chainSteps);
             tagsInput.value = promptToEdit.tags || '';
             categorySelect.value = categoryName;
             autoSendInput.checked = promptToEdit.autoSend;
@@ -1834,6 +1856,7 @@
         } else {
             title.textContent = 'Add New Prompt';
             idInput.value = '';
+            chainStepsInput.value = '';
             categorySelect.value = categoryName || (settings.groupOrder || [])[0] || '__createnew__';
             if (categorySelect.value === '__createnew__') newCategoryInput.style.display = 'block';
             favoriteInput.checked = false;
@@ -1845,12 +1868,13 @@
             const id = idInput.value || `prompt-${Date.now()}`;
             const newName = nameInput.value.trim();
             const newText = textInput.value.trim();
+            const chainSteps = parseChainStepsInput(chainStepsInput.value);
 
             if (promptToEdit && promptToEdit.text !== newText) {
                 addHistoryEntry(id, promptToEdit.text);
             }
 
-            const newPrompt = { id, name: newName, text: newText, tags: tagsInput.value.trim(), autoSend: autoSendInput.checked, pinned: pinInput.checked, usageCount: promptToEdit ? promptToEdit.usageCount : 0, lastUsed: promptToEdit ? promptToEdit.lastUsed : null };
+            const newPrompt = { id, name: newName, text: newText, chainSteps, tags: tagsInput.value.trim(), autoSend: autoSendInput.checked, pinned: pinInput.checked, usageCount: promptToEdit ? promptToEdit.usageCount : 0, lastUsed: promptToEdit ? promptToEdit.lastUsed : null };
             let targetCategory = (categorySelect.value === '__createnew__') ? newCategoryInput.value.trim() : categorySelect.value;
             if (!newPrompt.name || !newPrompt.text || !targetCategory) { showToast("Name, Text, and Group are required.", 2500, 'error'); return; }
             if (targetCategory === "Favorites") { showToast("Cannot add prompts directly to Favorites.", 2500, 'error'); return; }
@@ -2153,20 +2177,20 @@
 
     // --- NAVIGATION ---
     function updateNavigator() {
-        if (!navigator) return;
+        if (!postNavigator) return;
         const posts = Array.from(document.querySelectorAll('response-container, rich-content-renderer'));
         const scrollY = window.scrollY;
         const pageHeight = document.documentElement.scrollHeight;
         const viewportHeight = window.innerHeight;
         const canScrollUp = scrollY > 50;
         const canScrollDown = scrollY < pageHeight - viewportHeight - 50;
-        navigator.querySelector('#nav-to-top').classList.toggle('visible', canScrollUp);
-        navigator.querySelector('#nav-to-bottom').classList.toggle('visible', canScrollDown);
+        postNavigator.querySelector('#nav-to-top').classList.toggle('visible', canScrollUp);
+        postNavigator.querySelector('#nav-to-bottom').classList.toggle('visible', canScrollDown);
         const upPost = posts.slice().reverse().find(p => p.offsetTop < scrollY - 50);
         const downPost = posts.find(p => p.offsetTop > scrollY + viewportHeight / 2);
-        navigator.querySelector('#nav-up').classList.toggle('visible', !!upPost);
-        navigator.querySelector('#nav-down').classList.toggle('visible', !!downPost);
-        const mainNavArrow = navigator.querySelector('.main-nav-arrow');
+        postNavigator.querySelector('#nav-up').classList.toggle('visible', !!upPost);
+        postNavigator.querySelector('#nav-down').classList.toggle('visible', !!downPost);
+        const mainNavArrow = postNavigator.querySelector('.main-nav-arrow');
         const mainNavIcon = mainNavArrow.firstChild;
         while(mainNavIcon.firstChild) mainNavIcon.removeChild(mainNavIcon.firstChild);
         mainNavIcon.appendChild(settings.position === 'left' ? icons.navInwardRight.cloneNode(true) : icons.navInwardLeft.cloneNode(true));
@@ -2270,7 +2294,7 @@
             content.append(actionGroup, searchAddContainer, promptGroup);
             panel.appendChild(content);
 
-            navigator = document.createElement('div'); navigator.className = 'post-navigator';
+            postNavigator = document.createElement('div'); postNavigator.className = 'post-navigator';
             const navToTop = document.createElement('button'); navToTop.id = 'nav-to-top'; navToTop.title = 'Scroll to Top';
             const navUp = document.createElement('button'); navUp.id = 'nav-up'; navUp.title = 'Previous Post';
             const navDown = document.createElement('button'); navDown.id = 'nav-down'; navDown.title = 'Next Post';
@@ -2286,8 +2310,8 @@
             navDown.appendChild(icons.navDown.cloneNode(true));
             navToBottom.appendChild(icons.navToBottom.cloneNode(true));
             mainNavArrow.appendChild(mainNavIconContainer);
-            navigator.append(navToTop, navUp, navDown, navToBottom, mainNavArrow);
-            document.body.append(panel, handle, toast, promptFormModal, settingsModal, importExportModal, aiEnhancerModal, analyticsModal, versionHistoryModal, navigator);
+            postNavigator.append(navToTop, navUp, navDown, navToBottom, mainNavArrow);
+            document.body.append(panel, handle, toast, promptFormModal, settingsModal, importExportModal, aiEnhancerModal, analyticsModal, versionHistoryModal, postNavigator);
 
             // --- Attach Event Listeners ---
             handle.addEventListener('mouseenter', () => { panel.classList.add('visible'); updateHandleHeight(); });
@@ -2349,7 +2373,7 @@
                     let newTop = startTop + (ev.clientY - startY);
                     newTop = Math.max(0, Math.min(newTop, window.innerHeight - panel.offsetHeight));
                     settings.topOffset = newTop + 'px';
-                    panel.style.top = settings.topOffset; handle.style.top = settings.topOffset; navigator.style.top = settings.topOffset;
+                    panel.style.top = settings.topOffset; handle.style.top = settings.topOffset; postNavigator.style.top = settings.topOffset;
                 }
                 function onUp() {
                     document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp);
@@ -2379,9 +2403,9 @@
             if (allResponses.length > 0) {
                 const latestResponse = allResponses[allResponses.length - 1];
                 const textContainer = latestResponse.querySelector('div.markdown.prose');
-                if (textContainer && navigator.clipboard) {
+                if (textContainer && window.navigator.clipboard) {
                     try {
-                        await navigator.clipboard.writeText(textContainer.textContent);
+                        await window.navigator.clipboard.writeText(textContainer.textContent);
                         showToast('Latest response copied!', 2000, 'success');
                     } catch (err) {
                         console.error('Failed to copy text: ', err);
@@ -2485,7 +2509,7 @@
     async function resolveClipboardVariable(text) {
         if (!text.includes('{clipboard}')) return text;
         try {
-            const clipboardText = await navigator.clipboard.readText();
+            const clipboardText = await window.navigator.clipboard.readText();
             return text.split('{clipboard}').join(clipboardText);
         } catch (err) {
             showToast('Clipboard access denied. Leaving {clipboard} unresolved.', 3000, 'error');
@@ -2589,47 +2613,231 @@
         return result;
     }
 
+    function parseChainStepsInput(value) {
+        return String(value || '')
+            .split(/\r?\n\s*---+\s*\r?\n/g)
+            .map(step => step.trim())
+            .filter(Boolean);
+    }
+
+    function normalizeChainSteps(rawSteps) {
+        if (Array.isArray(rawSteps)) {
+            return rawSteps.map(step => String(step || '').trim()).filter(Boolean);
+        }
+        if (typeof rawSteps === 'string') {
+            return parseChainStepsInput(rawSteps);
+        }
+        return [];
+    }
+
+    function formatChainStepsForInput(rawSteps) {
+        return normalizeChainSteps(rawSteps).join('\n---\n');
+    }
+
+    function getPromptChainSteps(promptData) {
+        return normalizeChainSteps(promptData && promptData.chainSteps);
+    }
+
+    function injectPreviousResponse(stepText, previousResponse) {
+        const responseText = String(previousResponse || '').trim();
+        let result = String(stepText || '');
+        if (!responseText) return result;
+
+        let inserted = false;
+        ['{previous_response}', '{{previous_response}}', '{response}', '{{response}}'].forEach(token => {
+            if (result.includes(token)) {
+                result = result.split(token).join(responseText);
+                inserted = true;
+            }
+        });
+
+        if (inserted) return result;
+        return `${result}\n\nPrevious response:\n${responseText}`;
+    }
+
+    function getGeminiEditor() {
+        return document.querySelector('div.ql-editor');
+    }
+
+    function getGeminiChatContainer() {
+        return document.querySelector('main .chat-history') || document.querySelector('main') || document.body;
+    }
+
+    function getElementText(element) {
+        return (element?.innerText || element?.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    function getGeminiResponseElements() {
+        const container = getGeminiChatContainer();
+        const selectors = 'response-container, rich-content-renderer, model-response, message-content, [data-testid="response"], [data-test-id="response"]';
+        let elements = Array.from(container.querySelectorAll(selectors));
+
+        if (elements.length === 0 && container.children) {
+            elements = Array.from(container.children);
+        }
+
+        return elements.filter(element => {
+            if (!element || element.closest?.('#gemini-prompt-panel-main, .modal-overlay, #floating-mini-panel')) return false;
+            return getElementText(element).length > 0;
+        });
+    }
+
+    function getGeminiResponseSnapshot() {
+        const responses = getGeminiResponseElements();
+        const latest = responses[responses.length - 1];
+        return {
+            count: responses.length,
+            text: latest ? getElementText(latest) : ''
+        };
+    }
+
+    function isGeminiGeneratingResponse() {
+        const sendButton = document.querySelector('button.send-button');
+        if (sendButton?.classList?.contains('stop')) return true;
+
+        return Array.from(document.querySelectorAll('button')).some(button => {
+            const label = `${button.getAttribute('aria-label') || ''} ${button.title || ''} ${button.textContent || ''}`;
+            return !button.disabled && /\bstop\b|stop generating|stop response/i.test(label);
+        });
+    }
+
+    function waitForNextGeminiResponse(previousSnapshot, timeoutMs = 180000) {
+        return new Promise((resolve, reject) => {
+            const container = getGeminiChatContainer();
+            let settledTimer = null;
+            let done = false;
+
+            const cleanup = () => {
+                done = true;
+                observer.disconnect();
+                clearInterval(intervalTimer);
+                clearTimeout(timeoutTimer);
+                if (settledTimer) clearTimeout(settledTimer);
+            };
+
+            const resolveIfSettled = () => {
+                if (done) return;
+                const snapshot = getGeminiResponseSnapshot();
+                const responseChanged = snapshot.text && (snapshot.count > previousSnapshot.count || snapshot.text !== previousSnapshot.text);
+                if (!responseChanged || isGeminiGeneratingResponse()) return;
+
+                if (settledTimer) clearTimeout(settledTimer);
+                settledTimer = setTimeout(() => {
+                    const stableSnapshot = getGeminiResponseSnapshot();
+                    const stableChanged = stableSnapshot.text && (stableSnapshot.count > previousSnapshot.count || stableSnapshot.text !== previousSnapshot.text);
+                    if (stableChanged && !isGeminiGeneratingResponse()) {
+                        cleanup();
+                        resolve(stableSnapshot.text);
+                    }
+                }, 2200);
+            };
+
+            const observer = new MutationObserver(resolveIfSettled);
+            observer.observe(container, { childList: true, subtree: true, characterData: true });
+            const intervalTimer = setInterval(resolveIfSettled, 1000);
+            const timeoutTimer = setTimeout(() => {
+                cleanup();
+                reject(new Error('Timed out waiting for Gemini response completion.'));
+            }, timeoutMs);
+
+            resolveIfSettled();
+        });
+    }
+
+    async function preparePromptText(rawText, autoSend = false) {
+        let text = String(rawText || '');
+
+        text = resolveBuiltinVariables(text);
+        text = resolveSelectionVariable(text);
+        text = await resolveClipboardVariable(text);
+
+        const userVars = extractUserVariables(text);
+        if (userVars.length > 0) {
+            const values = await showVariableDialog(userVars);
+            if (values === null) {
+                showToast('Prompt cancelled.', 1500);
+                return null;
+            }
+            text = applyUserVariables(text, values);
+            if (extractUserVariables(text).length > 0) {
+                autoSend = false;
+            }
+        }
+
+        return { text, autoSend };
+    }
+
+    async function insertPromptIntoGemini(rawText, autoSend = false) {
+        const editor = getGeminiEditor();
+        if (!editor) {
+            showToast('Error: Prompt input not found.', 3000, 'error');
+            return false;
+        }
+
+        const prepared = await preparePromptText(rawText, autoSend);
+        if (!prepared) return false;
+
+        editor.focus();
+        document.execCommand('selectAll', false, null);
+        document.execCommand('insertText', false, prepared.text);
+
+        if (prepared.autoSend) {
+            await new Promise(resolve => setTimeout(resolve, 150));
+            const sendButton = document.querySelector('button.send-button, button[data-testid="send-button"]');
+            if (!sendButton || sendButton.disabled) {
+                showToast('Gemini send button is not ready.', 2500, 'error');
+                return false;
+            }
+            sendButton.click();
+        }
+
+        return true;
+    }
+
+    async function runChainedPrompt(promptData) {
+        const steps = [promptData.text, ...getPromptChainSteps(promptData)].map(step => String(step || '').trim()).filter(Boolean);
+        if (steps.length === 0) return;
+
+        promptData.usageCount = (promptData.usageCount || 0) + 1;
+        promptData.lastUsed = Date.now();
+        savePrompts();
+
+        let previousResponse = '';
+        try {
+            for (let index = 0; index < steps.length; index++) {
+                const stepText = index === 0 ? steps[index] : injectPreviousResponse(steps[index], previousResponse);
+                const previousSnapshot = getGeminiResponseSnapshot();
+                showToast(`Running chain step ${index + 1}/${steps.length}...`, 1800, 'success');
+                const sent = await insertPromptIntoGemini(stepText, true);
+                if (!sent) return;
+                previousResponse = await waitForNextGeminiResponse(previousSnapshot);
+            }
+            showToast('Chained prompt complete.', 2500, 'success');
+        } catch (err) {
+            console.error('GeminiBuddy chained prompt failed:', err);
+            showToast(err.message || 'Chained prompt failed.', 4000, 'error');
+        }
+    }
+
+    if (window.__GEMINIBUDDY_TEST_HOOKS__) {
+        Object.assign(window.__GEMINIBUDDY_TEST_HOOKS__, {
+            parseChainStepsInput,
+            normalizeChainSteps,
+            formatChainStepsForInput,
+            injectPreviousResponse
+        });
+    }
+
     async function sendPromptToGemini(promptData, autoSend = false) {
-        const editor = document.querySelector('div.ql-editor');
-        if (editor) {
-            promptData.usageCount = (promptData.usageCount || 0) + 1;
-            promptData.lastUsed = Date.now();
-            savePrompts();
+        if (getPromptChainSteps(promptData).length > 0) {
+            await runChainedPrompt(promptData);
+            return;
+        }
 
-            let text = promptData.text;
-
-            // Resolve built-in variables
-            text = resolveBuiltinVariables(text);
-            text = resolveSelectionVariable(text);
-            text = await resolveClipboardVariable(text);
-
-            // Check for user-defined {{variables}}
-            const userVars = extractUserVariables(text);
-            if (userVars.length > 0) {
-                const values = await showVariableDialog(userVars);
-                if (values === null) {
-                    // User cancelled
-                    showToast('Prompt cancelled.', 1500);
-                    return;
-                }
-                text = applyUserVariables(text, values);
-                // Conditional auto-send: suppress auto-send if any {{var}} was left empty
-                const remainingVars = extractUserVariables(text);
-                if (remainingVars.length > 0) {
-                    autoSend = false;
-                }
-            }
-
-            editor.focus();
-            document.execCommand('selectAll', false, null);
-            document.execCommand('insertText', false, text);
-            if (autoSend) {
-                setTimeout(() => {
-                    const sendButton = document.querySelector('button.send-button, button[data-testid="send-button"]');
-                    if (sendButton && !sendButton.disabled) sendButton.click();
-                }, 150);
-            }
-        } else { showToast('Error: Prompt input not found.', 3000, 'error'); }
+        promptData.usageCount = (promptData.usageCount || 0) + 1;
+        promptData.lastUsed = Date.now();
+        savePrompts();
+        await insertPromptIntoGemini(promptData.text, autoSend);
     }
     function initResizeFunctionality() {
         let startX, startWidth;

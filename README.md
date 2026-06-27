@@ -1,6 +1,6 @@
 # Gemini Prompt Panel
 
-![Version](https://img.shields.io/badge/version-v42-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
+![Version](https://img.shields.io/badge/version-v44.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
 
 A highly configurable, auto-hiding, lockable, slide-out panel that remembers its position, with draggable prompts, themes, import/export, and more for Gemini.
 
@@ -39,6 +39,11 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
     ];
     ```
 
+### **Chained Prompt Workflows**
+
+  * **What it does:** Lets a saved prompt define follow-up steps that run after Gemini finishes responding.
+  * **How it improves the target interface:** Multi-step workflows can pass the previous response into the next prompt using `{previous_response}`.
+
 ### **Draggable Prompts**
 
   * **What it does:** The order of the prompt buttons can be rearranged via drag and drop.
@@ -67,7 +72,7 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
 
 1.  **Install a Userscript Manager:** If you don't have one, install a userscript manager like Tampermonkey for your browser.
 2.  **Install the Script:**
-      * Navigate to the `Gemini-Prompt-Panel-10.6.user.js` file in this repository.
+      * Navigate to the `GeminiBuddy.user.js` file in this repository.
       * Click the "Raw" button to view the raw file content.
       * Your userscript manager should automatically detect the userscript and prompt you to install it.
       * Click "Install" to add the Gemini Prompt Panel to your browser.
@@ -75,7 +80,7 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
       * Clone this repository to your local machine.
       * Open the Tampermonkey dashboard in your browser.
       * Go to the "Utilities" tab.
-      * Under "File", use "Choose File" to import the `Gemini-Prompt-Panel-10.6.user.js` from your local clone.
+      * Under "File", use "Choose File" to import the `GeminiBuddy.user.js` from your local clone.
 
 -----
 
@@ -120,7 +125,7 @@ Settings and prompts are stored in your browser's local storage using the follow
 
 ### File and folder layout
 
-  * `Gemini-Prompt-Panel-10.6.user.js`: The main userscript file containing all the JavaScript code for the extension.
+  * `GeminiBuddy.user.js`: The main userscript file containing all the JavaScript code for the extension.
   * `README.md`: The file you are currently reading.
 
 ### Core modules and their responsibilities
@@ -183,6 +188,11 @@ Settings and prompts are stored in your browser's local storage using the follow
 -----
 
 ## Changelog
+
+### [44.0.0] - 2026-06-27
+
+  * Added chained prompt workflows with follow-up steps and previous-response handoff.
+  * Fixed clipboard access by separating the post navigator state from `window.navigator`.
 
 ### [10.6] - 2025-07-12
 
