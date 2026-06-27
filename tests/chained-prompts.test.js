@@ -199,4 +199,18 @@ assert.strictEqual(
   ''
 );
 
+const marketplaceGroups = JSON.parse(JSON.stringify(hooks.normalizeMarketplacePrompts({
+  category: 'Team',
+  prompts: [
+    { title: 'Summarize', prompt: 'Summarize this.', tags: ['team', 'summary'] },
+    { name: 'Skip empty', prompt: '' },
+  ],
+})));
+
+assert.deepStrictEqual(Object.keys(marketplaceGroups), ['Team']);
+assert.strictEqual(marketplaceGroups.Team.length, 1);
+assert.strictEqual(marketplaceGroups.Team[0].name, 'Summarize');
+assert.strictEqual(marketplaceGroups.Team[0].text, 'Summarize this.');
+assert.strictEqual(marketplaceGroups.Team[0].tags, 'team, summary');
+
 console.log('userscript helpers passed');

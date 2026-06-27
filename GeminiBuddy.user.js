@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      50.0.0
+// @version      51.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -13,6 +13,7 @@
 // @connect      api.github.com
 // @connect      gist.githubusercontent.com
 // @connect      raw.githubusercontent.com
+// @connect      *
 // @run-at       document-idle
 // @license      MIT
 // @updateURL    https://github.com/SysAdminDoc/GeminiBuddy/raw/refs/heads/main/GeminiBuddy.user.js
@@ -28,7 +29,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v50.0.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v51.0.0 loaded');
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -75,7 +76,7 @@
         themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
         fontFamily: 'Verdana, sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
         collapsedCategories: [], favorites: [], groupOrder: [], tagOrder: [], initiallyCollapsed: false, copyButtonOrderSwapped: false,
-        showTags: true, showPins: true, enableAIenhancer: true, geminiAPIKey: '', gistURL: '', gistToken: '', gistFileName: 'gemini-prompts.json',
+        showTags: true, showPins: true, enableAIenhancer: true, geminiAPIKey: '', gistURL: '', gistToken: '', gistFileName: 'gemini-prompts.json', marketplaceURL: '',
         enableMiniMode: true, groupByTags: true, autoCopyCodeOnCompletion: true,
         groupColors: {},
         colors: {
@@ -1730,6 +1731,18 @@
         gistPushContainer.className = 'input-with-button';
         gistPushContainer.append(gistFileNameInput, pushGistBtn);
         dataContent.appendChild(createSettingRow('gist-file-name-input', 'Gist File Name', 'File to update when pushing prompts to Gist.', gistPushContainer));
+        const marketplaceUrlInput = document.createElement('input');
+        marketplaceUrlInput.type = 'url';
+        marketplaceUrlInput.id = 'marketplace-url-input';
+        marketplaceUrlInput.placeholder = 'https://example.com/prompts.json';
+        marketplaceUrlInput.value = settings.marketplaceURL || '';
+        marketplaceUrlInput.addEventListener('change', (e) => { settings.marketplaceURL = e.target.value.trim(); saveSettings(); });
+        const marketplaceImportBtn = createButtonWithIcon('Import Marketplace', icons.importExport.cloneNode(true));
+        marketplaceImportBtn.addEventListener('click', () => importMarketplacePrompts().catch(err => console.error('Marketplace import failed:', err)));
+        const marketplaceContainer = document.createElement('div');
+        marketplaceContainer.className = 'input-with-button';
+        marketplaceContainer.append(marketplaceUrlInput, marketplaceImportBtn);
+        dataContent.appendChild(createSettingRow('marketplace-url-input', 'Prompt Marketplace JSON', 'Remote curated prompt list to import.', marketplaceContainer));
         const importExportButton = createButtonWithIcon('Local Import / Export', icons.importExport.cloneNode(true));
         importExportButton.classList.add('copy-btn');
         importExportButton.style.gridColumn = '1 / -1';
@@ -3289,6 +3302,7 @@
             injectPreviousResponse,
             normalizeGemUrl,
             extractGistIdFromUrl,
+            normalizeMarketplacePrompts,
             normalizeModelText,
             textMatchesModelShortcut,
             textLooksLikeCanvasShortcut,
@@ -3430,6 +3444,102 @@
                 onerror: function(response) {
                     showToast("Error pushing to Gist.", 3000, 'error');
                     reject(new Error(response.statusText || "Gist push failed."));
+                }
+            });
+        });
+    }
+
+    function normalizeTagsValue(tags) {
+        if (Array.isArray(tags)) return tags.map(tag => String(tag).trim()).filter(Boolean).join(', ');
+        return String(tags || '').trim();
+    }
+
+    function getMarketplacePromptText(item) {
+        return String(item?.text || item?.prompt || item?.content || item?.body || '').trim();
+    }
+
+    function getMarketplacePromptName(item, index) {
+        return String(item?.name || item?.title || item?.label || item?.slug || `Marketplace Prompt ${index + 1}`).trim();
+    }
+
+    function normalizeMarketplacePrompts(data) {
+        const groups = {};
+        const appendPrompt = (item, index, fallbackCategory = 'Marketplace') => {
+            if (!item || typeof item !== 'object') return;
+            const text = getMarketplacePromptText(item);
+            if (!text) return;
+            const category = String(item.category || item.group || item.collection || fallbackCategory || 'Marketplace').trim() || 'Marketplace';
+            if (!groups[category]) groups[category] = [];
+            groups[category].push({
+                id: item.id ? String(item.id) : `marketplace-${Date.now()}-${index}`,
+                name: getMarketplacePromptName(item, index),
+                text,
+                tags: normalizeTagsValue(item.tags),
+                autoSend: !!item.autoSend,
+                pinned: !!item.pinned,
+                usageCount: 0,
+                lastUsed: null,
+                chainSteps: normalizeChainSteps(item.chainSteps || item.followUps || item.steps),
+                gemUrl: normalizeGemUrl(item.gemUrl || item.gemURL || item.gem)
+            });
+        };
+
+        if (Array.isArray(data)) {
+            data.forEach((item, index) => appendPrompt(item, index));
+        } else if (Array.isArray(data?.prompts)) {
+            data.prompts.forEach((item, index) => appendPrompt(item, index, data.category || data.name || 'Marketplace'));
+        } else if (data && typeof data === 'object') {
+            Object.entries(data).forEach(([category, value]) => {
+                if (Array.isArray(value)) {
+                    value.forEach((item, index) => appendPrompt(item, index, category));
+                }
+            });
+        }
+
+        return groups;
+    }
+
+    function mergePromptGroups(promptGroups) {
+        Object.entries(promptGroups).forEach(([category, prompts]) => {
+            if (!currentPrompts[category]) {
+                currentPrompts[category] = [];
+                if (!settings.groupOrder.includes(category)) settings.groupOrder.push(category);
+            }
+            currentPrompts[category].push(...prompts);
+        });
+        ensurePromptIDs(currentPrompts);
+    }
+
+    async function importMarketplacePrompts() {
+        const url = (settings.marketplaceURL || '').trim();
+        if (!url) {
+            showToast("Please provide a marketplace JSON URL.", 2500, 'error');
+            return;
+        }
+        showToast("Importing marketplace prompts...", 2000);
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url,
+                onload: function(response) {
+                    try {
+                        const promptGroups = normalizeMarketplacePrompts(JSON.parse(response.responseText));
+                        const promptCount = Object.values(promptGroups).reduce((sum, prompts) => sum + prompts.length, 0);
+                        if (promptCount === 0) throw new Error("No importable prompts found.");
+                        mergePromptGroups(promptGroups);
+                        Promise.all([savePrompts(), saveSettings()]).then(() => {
+                            renderAllPrompts();
+                            showToast(`Imported ${promptCount} marketplace prompt${promptCount === 1 ? '' : 's'}.`, 2500, 'success');
+                            resolve(true);
+                        });
+                    } catch (err) {
+                        showToast(err.message || "Marketplace import failed.", 3500, 'error');
+                        reject(err);
+                    }
+                },
+                onerror: function(response) {
+                    showToast("Error fetching marketplace JSON.", 3000, 'error');
+                    reject(new Error(response.statusText || "Marketplace fetch failed."));
                 }
             });
         });
