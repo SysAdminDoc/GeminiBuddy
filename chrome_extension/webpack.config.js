@@ -14,7 +14,7 @@ module.exports = {
       headers: {
         name: 'GeminiBuddy',
         namespace: 'https://github.com/SysAdminDoc/GeminiBuddy',
-        version: '47.0.0',
+        version: '48.0.0',
         description: "CSP-Compliant in @grant none mode. Upgraded with a professional SaaS-style settings menu, UI refinements, and more.",
         author: 'Matthew Parker',
         match: 'https://gemini.google.com/*',

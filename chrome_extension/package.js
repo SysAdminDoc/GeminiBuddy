@@ -1,6 +1,6 @@
 {
   "name": "geminibuddy-userscript",
-  "version": "47.0.0",
+  "version": "48.0.0",
   "description": "A modular userscript for Gemini, built with Webpack.",
   "private": true,
   "scripts": {

@@ -155,6 +155,16 @@ assert.strictEqual(
 );
 
 assert.strictEqual(
+  hooks.textLooksLikeDeepResearchShortcut('Start Deep Research'),
+  true
+);
+
+assert.strictEqual(
+  hooks.textLooksLikeDeepResearchShortcut('Research notes'),
+  false
+);
+
+assert.strictEqual(
   hooks.normalizeGemUrl('/gem/example-gem'),
   'https://gemini.google.com/gem/example-gem'
 );

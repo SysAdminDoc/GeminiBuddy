@@ -1,6 +1,6 @@
 # Gemini Prompt Panel
 
-![Version](https://img.shields.io/badge/version-v47.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
+![Version](https://img.shields.io/badge/version-v48.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
 
 A highly configurable, auto-hiding, lockable, slide-out panel that remembers its position, with draggable prompts, themes, import/export, and more for Gemini.
 
@@ -58,6 +58,11 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
 
   * **What it does:** Lets a saved prompt store a Gemini Gem URL and open that Gem before inserting or sending the prompt.
   * **How it improves the target interface:** Persona-specific prompts can route themselves to the matching Gem without manual navigation.
+
+### **Deep Research Launcher**
+
+  * **What it does:** Adds a panel button that selects Gemini Deep Research and launches it when the composer already has text.
+  * **How it improves the target interface:** Research prompts can move from drafting to Deep Research without leaving the prompt panel.
 
 ### **Draggable Prompts**
 
@@ -203,6 +208,10 @@ Settings and prompts are stored in your browser's local storage using the follow
 -----
 
 ## Changelog
+
+### [48.0.0] - 2026-06-27
+
+  * Added a Deep Research launcher that selects Gemini Deep Research and sends the current prompt when ready.
 
 ### [47.0.0] - 2026-06-27
 

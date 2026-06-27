@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      47.0.0
+// @version      48.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -28,7 +28,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v47.0.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v48.0.0 loaded');
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -438,7 +438,7 @@
         #panel-action-buttons { margin-top: 8px; }
         .model-shortcut-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
         .model-shortcut-button { padding: 6px 4px; font-size: calc(var(--base-font-size) - 2px); background: var(--panel-header-bg); border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; min-width: 0; }
-        .canvas-shortcut-button { grid-column: 1 / -1; background: var(--panel-header-bg); border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; }
+        .canvas-shortcut-button, .deep-research-shortcut-button { grid-column: 1 / -1; background: var(--panel-header-bg); border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; }
         .gemini-prompt-panel-button { border: 1px solid; color: white; padding: var(--btn-padding); border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: calc(var(--base-font-size) - 1px); font-weight: 500; cursor: pointer; transition: all .2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
         .gemini-prompt-panel-button:hover { filter: brightness(1.1); transform: translateY(-1px); }
         .gemini-prompt-panel-button:disabled { cursor: not-allowed; filter: brightness(0.6); }
@@ -852,7 +852,7 @@
     // --- DOM & STATE VARIABLES ---
     let panel, handle, promptFormModal, toast, resizeHandle, postNavigator, settingsModal, importExportModal, aiEnhancerModal, analyticsModal, versionHistoryModal, floatingMiniPanel, miniPanelTrigger;
     let leftHeaderControls, rightHeaderControls, actionGroup, modelShortcutGroup, panelModeSelector;
-    let searchAddContainer, copyResponseButton, copyCodeButton, canvasButton; // Chat-specific controls
+    let searchAddContainer, copyResponseButton, copyCodeButton, canvasButton, deepResearchButton; // Chat-specific controls
     let lockButton, arrowLeftBtn, arrowRightBtn, settingsBtn, analyticsBtn;
     let isManuallyLocked = false, isFormActiveLock = false;
     let generationObserver = null, isGenerating = false;
@@ -1071,6 +1071,7 @@
             actionGroup.append(copyResponseButton, copyCodeButton);
         }
         actionGroup.append(canvasButton);
+        actionGroup.append(deepResearchButton);
     }
     function updateHandleHeight() {
         if (!panel || !handle || settings.handleStyle === 'edge') return;
@@ -2320,6 +2321,7 @@
             copyResponseButton = createButtonWithIcon('Copy Response', null);
             copyCodeButton = createButtonWithIcon('Copy Code', null);
             canvasButton = createButtonWithIcon('Canvas', null);
+            deepResearchButton = createButtonWithIcon('Deep Research', null);
 
             searchAddContainer = document.createElement('div'); // Keep reference to hide/show
             searchAddContainer.className = 'search-add-container';
@@ -2348,6 +2350,7 @@
             copyResponseButton.classList.add('copy-btn');
             copyCodeButton.classList.add('copy-btn');
             canvasButton.classList.add('canvas-shortcut-button');
+            deepResearchButton.classList.add('deep-research-shortcut-button');
             searchInput.placeholder = 'Search prompts...';
             navToTop.appendChild(icons.navToTop.cloneNode(true));
             navUp.appendChild(icons.navUp.cloneNode(true));
@@ -2481,6 +2484,7 @@
             }
         });
         canvasButton.addEventListener('click', () => activateGeminiCanvasMode());
+        deepResearchButton.addEventListener('click', () => activateGeminiDeepResearch());
     }
 
     function sleep(ms) {
@@ -2596,6 +2600,10 @@
         return /\bcanvas\b/i.test(normalizeModelText(text));
     }
 
+    function textLooksLikeDeepResearchShortcut(text) {
+        return /deep\s+research/i.test(normalizeModelText(text));
+    }
+
     function findGeminiCanvasOption() {
         const selectors = [
             '[role="option"]',
@@ -2641,6 +2649,53 @@
 
         canvasOption.click();
         showToast('Canvas mode selected for the current prompt.', 2500, 'success');
+    }
+
+    function findGeminiDeepResearchOption() {
+        const selectors = [
+            '[role="option"]',
+            '[role="menuitem"]',
+            'button',
+            '[role="button"]',
+            'mat-option',
+            'li',
+            'div'
+        ];
+        const candidates = [...new Set(selectors.flatMap(queryModelCandidates))];
+        const match = candidates.find(element => {
+            if (!isVisiblePageElement(element)) return false;
+            return textLooksLikeDeepResearchShortcut(getPageCandidateText(element));
+        });
+        return match ? getClickableModelElement(match) : null;
+    }
+
+    async function activateGeminiDeepResearch() {
+        let deepResearchOption = findGeminiDeepResearchOption();
+        if (!deepResearchOption) {
+            const toolsButton = findGeminiToolsButton();
+            if (toolsButton) {
+                toolsButton.click();
+                await sleep(350);
+                deepResearchOption = findGeminiDeepResearchOption();
+            }
+        }
+
+        if (!deepResearchOption) {
+            showToast('Gemini Deep Research option not found.', 3000, 'error');
+            return;
+        }
+
+        deepResearchOption.click();
+        await sleep(200);
+
+        const editorText = getElementText(getGeminiEditor());
+        const sendButton = getGeminiSendButton();
+        if (editorText && sendButton && !sendButton.disabled) {
+            sendButton.click();
+            showToast('Deep Research launched.', 2500, 'success');
+        } else {
+            showToast('Deep Research selected. Add a prompt to launch.', 3000, 'success');
+        }
     }
 
     function initializePageObserver() {
@@ -2934,6 +2989,10 @@
         return document.querySelector('div.ql-editor');
     }
 
+    function getGeminiSendButton() {
+        return document.querySelector('button.send-button, button[data-testid="send-button"]');
+    }
+
     function getGeminiChatContainer() {
         return document.querySelector('main .chat-history') || document.querySelector('main') || document.body;
     }
@@ -3058,7 +3117,7 @@
 
         if (prepared.autoSend) {
             await new Promise(resolve => setTimeout(resolve, 150));
-            const sendButton = document.querySelector('button.send-button, button[data-testid="send-button"]');
+            const sendButton = getGeminiSendButton();
             if (!sendButton || sendButton.disabled) {
                 showToast('Gemini send button is not ready.', 2500, 'error');
                 return false;
@@ -3102,6 +3161,7 @@
             normalizeModelText,
             textMatchesModelShortcut,
             textLooksLikeCanvasShortcut,
+            textLooksLikeDeepResearchShortcut,
             MODEL_SHORTCUTS
         });
     }
