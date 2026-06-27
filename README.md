@@ -1,6 +1,6 @@
 # Gemini Prompt Panel
 
-![Version](https://img.shields.io/badge/version-v52.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
+![Version](https://img.shields.io/badge/version-v53.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
 
 A highly configurable, auto-hiding, lockable, slide-out panel that remembers its position, with draggable prompts, themes, import/export, and more for Gemini.
 
@@ -84,6 +84,11 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
   * **What it does:** Generates copyable prompt URLs that import a single prompt when opened on Gemini.
   * **How it improves the target interface:** Individual prompts can be shared with teammates without exchanging full backup files.
 
+### **MV3 Extension Build**
+
+  * **What it does:** Builds a Chrome/Firefox MV3 extension package from the userscript with GM compatibility shims, an options page, and `chrome.storage.sync` prompt storage.
+  * **How it improves the target interface:** Users can install GeminiBuddy as an unpacked extension or ZIP package and keep prompts synced across browser profiles.
+
 ### **Draggable Prompts**
 
   * **What it does:** The order of the prompt buttons can be rearranged via drag and drop.
@@ -121,6 +126,9 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
       * Open the Tampermonkey dashboard in your browser.
       * Go to the "Utilities" tab.
       * Under "File", use "Choose File" to import the `GeminiBuddy.user.js` from your local clone.
+4.  **MV3 Extension Build:**
+      * Run `node chrome_extension/build-extension.js`.
+      * Load `chrome_extension/dist/geminibuddy-mv3` as an unpacked extension, or use the generated ZIP in `chrome_extension/dist`.
 
 -----
 
@@ -166,6 +174,9 @@ Settings and prompts are stored in your browser's local storage using the follow
 ### File and folder layout
 
   * `GeminiBuddy.user.js`: The main userscript file containing all the JavaScript code for the extension.
+  * `chrome_extension/manifest.json`: MV3 package metadata for Chrome and Firefox.
+  * `chrome_extension/gm-shim.js`: Compatibility bridge from `GM_*` calls to `chrome.storage.sync` and extension fetch.
+  * `chrome_extension/options.html`: Extension options page for sync-backed prompt and settings management.
   * `README.md`: The file you are currently reading.
 
 ### Core modules and their responsibilities
@@ -228,6 +239,10 @@ Settings and prompts are stored in your browser's local storage using the follow
 -----
 
 ## Changelog
+
+### [53.0.0] - 2026-06-27
+
+  * Added a Chrome/Firefox MV3 extension build with GM compatibility shims, sync-backed storage, an options page, and ZIP packaging.
 
 ### [52.0.0] - 2026-06-27
 

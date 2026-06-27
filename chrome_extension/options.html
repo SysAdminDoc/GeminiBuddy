@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GeminiBuddy Options</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">GeminiBuddy</p>
+        <h1>Options</h1>
+      </div>
+      <span id="status" class="status" role="status" aria-live="polite">Loaded from sync storage</span>
+    </header>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Prompt Library</h2>
+        <div class="actions">
+          <button id="reload-prompts" type="button">Reload</button>
+          <button id="save-prompts" type="button">Save</button>
+          <button id="export-prompts" type="button">Export</button>
+          <label class="file-action">
+            Import
+            <input id="import-prompts" type="file" accept="application/json,.json">
+          </label>
+        </div>
+      </div>
+      <textarea id="prompts-json" spellcheck="false" aria-label="Prompt JSON"></textarea>
+    </section>
+
+    <section class="panel settings-grid">
+      <div>
+        <h2>Panel Defaults</h2>
+        <label>
+          Theme
+          <select id="theme-name">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="auto">Auto</option>
+            <option value="glass">Glass</option>
+          </select>
+        </label>
+        <label>
+          Position
+          <select id="panel-position">
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+          </select>
+        </label>
+        <label>
+          Panel width
+          <input id="panel-width" type="number" min="260" max="720" step="10">
+        </label>
+      </div>
+
+      <div>
+        <h2>Sync Sources</h2>
+        <label>
+          Gist URL
+          <input id="gist-url" type="url" placeholder="https://gist.github.com/...">
+        </label>
+        <label>
+          Gist file name
+          <input id="gist-file-name" type="text" placeholder="gemini-prompts.json">
+        </label>
+        <label>
+          Marketplace JSON URL
+          <input id="marketplace-url" type="url" placeholder="https://example.com/prompts.json">
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <script src="options.js"></script>
+</body>
+</html>

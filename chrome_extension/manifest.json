@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "GeminiBuddy",
+  "version": "53.0.0",
+  "description": "Gemini prompt panel with prompt workflows, model shortcuts, sharing, and sync.",
+  "icons": {
+    "128": "icon.png"
+  },
+  "permissions": [
+    "storage",
+    "clipboardRead",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "https://api.github.com/*",
+    "https://gist.githubusercontent.com/*",
+    "https://raw.githubusercontent.com/*",
+    "https://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/*"
+      ],
+      "js": [
+        "gm-shim.js",
+        "GeminiBuddy.user.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "geminibuddy@sysadmindoc.github.io"
+    }
+  }
+}
