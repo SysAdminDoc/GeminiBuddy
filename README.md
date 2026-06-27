@@ -1,6 +1,6 @@
 # Gemini Prompt Panel
 
-![Version](https://img.shields.io/badge/version-v44.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
+![Version](https://img.shields.io/badge/version-v45.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
 
 A highly configurable, auto-hiding, lockable, slide-out panel that remembers its position, with draggable prompts, themes, import/export, and more for Gemini.
 
@@ -43,6 +43,11 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
 
   * **What it does:** Lets a saved prompt define follow-up steps that run after Gemini finishes responding.
   * **How it improves the target interface:** Multi-step workflows can pass the previous response into the next prompt using `{previous_response}`.
+
+### **Model Shortcuts**
+
+  * **What it does:** Adds panel buttons for Gemini 1.5 Flash, 2.0 Pro, and 2.5 Pro.
+  * **How it improves the target interface:** Users can switch models from the prompt panel without hunting through Gemini's header.
 
 ### **Draggable Prompts**
 
@@ -188,6 +193,10 @@ Settings and prompts are stored in your browser's local storage using the follow
 -----
 
 ## Changelog
+
+### [45.0.0] - 2026-06-27
+
+  * Added quick model-switch buttons for Gemini 1.5 Flash, 2.0 Pro, and 2.5 Pro.
 
 ### [44.0.0] - 2026-06-27
 

@@ -128,4 +128,19 @@ assert.strictEqual(
   'Summarize the result.\n\nPrevious response:\nInitial answer'
 );
 
-console.log('chained prompt helpers passed');
+assert.strictEqual(
+  hooks.normalizeModelText('  Gemini   2.5   Pro  '),
+  'gemini 2.5 pro'
+);
+
+assert.strictEqual(
+  hooks.textMatchesModelShortcut('Use Gemini 2.5 Pro with advanced reasoning', hooks.MODEL_SHORTCUTS[2]),
+  true
+);
+
+assert.strictEqual(
+  hooks.textMatchesModelShortcut('Gemini 1.5 Flash fast mode', hooks.MODEL_SHORTCUTS[1]),
+  false
+);
+
+console.log('userscript helpers passed');

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      44.0.0
+// @version      45.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -28,7 +28,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v44.0.0 loaded');
+    console.log('Gemini Prompt Panel Enhancer v45.0.0 loaded');
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -109,6 +109,11 @@
             '--handle-color': '#00ff41', '--handle-hover-color': '#50ff81', '--favorite-color': '#00ff41', '--pin-color': '#00ff41', '--ai-color': '#00ff41'
         }
     };
+    const MODEL_SHORTCUTS = [
+        { label: '1.5 Flash', aliases: ['1.5 Flash', 'Gemini 1.5 Flash'] },
+        { label: '2.0 Pro', aliases: ['2.0 Pro', 'Gemini 2.0 Pro'] },
+        { label: '2.5 Pro', aliases: ['2.5 Pro', 'Gemini 2.5 Pro'] }
+    ];
 
     // --- SETTINGS & PROMPT FUNCTIONS ---
     async function loadSettings() {
@@ -430,6 +435,8 @@
         .gemini-prompt-panel-content { padding:var(--panel-padding); display:flex; flex-direction:column; gap:var(--panel-gap); flex-grow: 1; overflow: hidden; }
         .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         #panel-action-buttons { margin-top: 8px; }
+        .model-shortcut-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+        .model-shortcut-button { padding: 6px 4px; font-size: calc(var(--base-font-size) - 2px); background: var(--panel-header-bg); border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; min-width: 0; }
         .gemini-prompt-panel-button { border: 1px solid; color: white; padding: var(--btn-padding); border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: calc(var(--base-font-size) - 1px); font-weight: 500; cursor: pointer; transition: all .2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
         .gemini-prompt-panel-button:hover { filter: brightness(1.1); transform: translateY(-1px); }
         .gemini-prompt-panel-button:disabled { cursor: not-allowed; filter: brightness(0.6); }
@@ -831,7 +838,7 @@
 
     // --- DOM & STATE VARIABLES ---
     let panel, handle, promptFormModal, toast, resizeHandle, postNavigator, settingsModal, importExportModal, aiEnhancerModal, analyticsModal, versionHistoryModal, floatingMiniPanel, miniPanelTrigger;
-    let leftHeaderControls, rightHeaderControls, actionGroup, panelModeSelector;
+    let leftHeaderControls, rightHeaderControls, actionGroup, modelShortcutGroup, panelModeSelector;
     let searchAddContainer, copyResponseButton, copyCodeButton; // Chat-specific controls
     let lockButton, arrowLeftBtn, arrowRightBtn, settingsBtn, analyticsBtn;
     let isManuallyLocked = false, isFormActiveLock = false;
@@ -964,6 +971,7 @@
     function renderPanelContent() {
         const isVeoMode = currentPanelView === 'veo';
         // Toggle visibility of chat-specific controls
+        modelShortcutGroup.style.display = isVeoMode ? 'none' : 'grid';
         actionGroup.style.display = isVeoMode ? 'none' : 'grid';
         searchAddContainer.style.display = isVeoMode ? 'none' : 'flex';
 
@@ -2274,6 +2282,14 @@
             panel.appendChild(hdr);
 
             const content = document.createElement('div'); content.className = 'gemini-prompt-panel-content';
+            modelShortcutGroup = document.createElement('div'); modelShortcutGroup.className = 'model-shortcut-group';
+            MODEL_SHORTCUTS.forEach(modelShortcut => {
+                const modelBtn = createButtonWithIcon(modelShortcut.label, null);
+                modelBtn.classList.add('model-shortcut-button');
+                modelBtn.title = `Switch to ${modelShortcut.label}`;
+                modelBtn.addEventListener('click', () => selectGeminiModel(modelShortcut));
+                modelShortcutGroup.appendChild(modelBtn);
+            });
             actionGroup = document.createElement('div'); actionGroup.className = 'button-group';
             copyResponseButton = createButtonWithIcon('Copy Response', null);
             copyCodeButton = createButtonWithIcon('Copy Code', null);
@@ -2291,7 +2307,7 @@
             const promptGroup = document.createElement('div'); promptGroup.className = 'prompt-group-container';
             const cont = document.createElement('div'); cont.id = 'custom-prompts-container';
             promptGroup.appendChild(cont);
-            content.append(actionGroup, searchAddContainer, promptGroup);
+            content.append(modelShortcutGroup, actionGroup, searchAddContainer, promptGroup);
             panel.appendChild(content);
 
             postNavigator = document.createElement('div'); postNavigator.className = 'post-navigator';
@@ -2435,6 +2451,112 @@
             }
         });
     }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function normalizeModelText(text) {
+        return String(text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    function textMatchesModelShortcut(text, shortcut) {
+        const normalizedText = normalizeModelText(text);
+        return shortcut.aliases.some(alias => normalizedText.includes(normalizeModelText(alias)));
+    }
+
+    function isInjectedPanelElement(element) {
+        return !!element?.closest?.('#gemini-prompt-panel-main, #floating-mini-panel, .modal-overlay');
+    }
+
+    function isVisiblePageElement(element) {
+        if (!element || isInjectedPanelElement(element)) return false;
+        const style = window.getComputedStyle ? window.getComputedStyle(element) : null;
+        if (style && (style.display === 'none' || style.visibility === 'hidden')) return false;
+        const rect = element.getBoundingClientRect?.();
+        return !rect || rect.width > 0 || rect.height > 0 || (element.getClientRects?.().length || 0) > 0;
+    }
+
+    function getModelCandidateText(element) {
+        return [
+            getElementText(element),
+            element.getAttribute?.('aria-label'),
+            element.getAttribute?.('title'),
+            element.getAttribute?.('data-test-id'),
+            element.getAttribute?.('data-testid')
+        ].filter(Boolean).join(' ');
+    }
+
+    function getClickableModelElement(element) {
+        return element.closest?.('button, [role="button"], [role="option"], [role="menuitem"], mat-option') || element;
+    }
+
+    function queryModelCandidates(selector) {
+        try {
+            return Array.from(document.querySelectorAll(selector));
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function findGeminiModelMenuButton() {
+        const targetedSelectors = [
+            'button[aria-label*="model" i]',
+            '[role="button"][aria-label*="model" i]',
+            'button[aria-label*="Gemini" i]',
+            '[role="button"][aria-label*="Gemini" i]',
+            'button[data-testid*="model" i]',
+            '[role="button"][data-testid*="model" i]'
+        ];
+        const targeted = targetedSelectors.flatMap(queryModelCandidates);
+        const fallback = queryModelCandidates('button, [role="button"]');
+        const candidates = [...new Set([...targeted, ...fallback])];
+
+        return candidates.find(element => {
+            if (!isVisiblePageElement(element)) return false;
+            const text = getModelCandidateText(element);
+            return /model|gemini|flash|pro/i.test(text) && !/send|copy|prompt|settings/i.test(text);
+        });
+    }
+
+    function findGeminiModelOption(shortcut) {
+        const selectors = [
+            '[role="option"]',
+            '[role="menuitem"]',
+            'mat-option',
+            'button',
+            '[role="button"]',
+            'li',
+            'div'
+        ];
+        const candidates = [...new Set(selectors.flatMap(queryModelCandidates))];
+        const match = candidates.find(element => {
+            if (!isVisiblePageElement(element)) return false;
+            return textMatchesModelShortcut(getModelCandidateText(element), shortcut);
+        });
+        return match ? getClickableModelElement(match) : null;
+    }
+
+    async function selectGeminiModel(shortcut) {
+        const menuButton = findGeminiModelMenuButton();
+        if (!menuButton) {
+            showToast('Gemini model picker not found.', 3000, 'error');
+            return;
+        }
+
+        menuButton.click();
+        await sleep(350);
+
+        const option = findGeminiModelOption(shortcut);
+        if (!option) {
+            showToast(`${shortcut.label} is not visible in Gemini's model menu.`, 3500, 'error');
+            return;
+        }
+
+        option.click();
+        showToast(`Switched to ${shortcut.label}.`, 2000, 'success');
+    }
+
     function initializePageObserver() {
         const pageObserver = new MutationObserver((mutationsList, observer) => {
             const chatContainer = document.querySelector('main .chat-history, main');
@@ -2824,7 +2946,10 @@
             parseChainStepsInput,
             normalizeChainSteps,
             formatChainStepsForInput,
-            injectPreviousResponse
+            injectPreviousResponse,
+            normalizeModelText,
+            textMatchesModelShortcut,
+            MODEL_SHORTCUTS
         });
     }
 
