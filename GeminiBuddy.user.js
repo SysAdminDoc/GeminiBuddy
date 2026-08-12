@@ -3795,6 +3795,20 @@
             textLooksLikeDeepResearchShortcut,
             fileExtensionForMimeType,
             clipboardFileNameForType,
+            syncFromGist,
+            syncToGist,
+            insertPromptIntoGemini,
+            readClipboardFiles,
+            resolveClipboardVariable,
+            copyTextToClipboard,
+            setTestState: (nextState = {}) => {
+                settings = { ...defaultSettings, ...(nextState.settings || {}) };
+                settings.groupOrder = settings.groupOrder || [];
+                settings.favorites = settings.favorites || [];
+                secrets = { geminiAPIKey: '', gistToken: '', ...(nextState.secrets || {}) };
+                currentPrompts = nextState.prompts || {};
+                toast = document.createElement('div');
+            },
             MODEL_SHORTCUTS
         });
     }

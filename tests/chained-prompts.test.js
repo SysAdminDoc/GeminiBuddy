@@ -37,6 +37,8 @@ function createElement(tagName = 'div') {
     },
     remove() {},
     addEventListener() {},
+    focus() {},
+    select() {},
     querySelector() { return null; },
     querySelectorAll() { return []; },
     closest() { return null; },
@@ -259,6 +261,52 @@ test('prompt transfer validates shapes, repairs duplicate IDs, and verifies expo
   assert.strictEqual(preview.promptCount, 1);
   exported.prompts.Team[0].text = 'tampered';
   await assert.rejects(() => hooks.buildPromptImportPreview(JSON.stringify(exported)), /checksum verification failed/);
+});
+
+test('Gist push reports transport failures with the authenticated request shape', async () => {
+  const requests = [];
+  hooks.setTestState({
+    settings: {
+      gistURL: 'https://gist.github.com/user/abcdef1234567890',
+      gistFileName: 'prompts.json'
+    },
+    secrets: { gistToken: 'local-token' },
+    prompts: { Team: [{ name: 'One', text: 'One' }] }
+  });
+  sandbox.GM_xmlhttpRequest = options => {
+    requests.push(options);
+    options.onerror({ statusText: '503 Service Unavailable' });
+  };
+
+  await assert.rejects(() => hooks.syncToGist(), /503 Service Unavailable/);
+  assert.strictEqual(requests.length, 1);
+  assert.strictEqual(requests[0].method, 'PATCH');
+  assert.match(requests[0].url, /api\.github\.com\/gists\/abcdef1234567890$/);
+  assert.strictEqual(requests[0].headers.Authorization, 'Bearer local-token');
+  assert.match(requests[0].data, /prompts\.json/);
+});
+
+test('prompt insertion and clipboard helpers use safe fallbacks', async () => {
+  hooks.setTestState();
+  document.querySelector = () => null;
+  assert.strictEqual(await hooks.insertPromptIntoGemini('Hello Gemini'), false);
+
+  const editor = createElement('div');
+  const commands = [];
+  document.querySelector = selector => selector === 'div.ql-editor' ? editor : null;
+  document.execCommand = (command, _showUi, value) => {
+    commands.push({ command, value });
+    return true;
+  };
+  assert.strictEqual(await hooks.insertPromptIntoGemini('Hello Gemini'), true);
+  assert.deepStrictEqual(commands.map(command => command.command), ['selectAll', 'insertText']);
+  assert.strictEqual(commands[1].value, 'Hello Gemini');
+
+  window.navigator.clipboard = undefined;
+  document.execCommand = () => false;
+  await assert.rejects(() => hooks.readClipboardFiles(), /not supported/);
+  assert.strictEqual(await hooks.resolveClipboardVariable('Use {clipboard}'), 'Use {clipboard}');
+  assert.strictEqual(await hooks.copyTextToClipboard('fallback copy'), false);
 });
 
 console.log('userscript helpers passed');

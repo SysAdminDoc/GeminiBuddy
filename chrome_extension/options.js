@@ -245,6 +245,8 @@
       formatPrompts,
       loadCanonicalValue,
       loadState,
+      saveSettings,
+      savePromptsFromTextarea,
       normalizePromptLibrary,
       normalizeSettings,
       createPromptExport,

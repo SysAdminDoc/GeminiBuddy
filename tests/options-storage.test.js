@@ -56,6 +56,9 @@ const document = {
 };
 
 const hooks = {};
+class TestURL extends URL {}
+TestURL.createObjectURL = () => 'blob:test';
+TestURL.revokeObjectURL = () => {};
 const sandbox = {
   console,
   document,
@@ -70,7 +73,7 @@ const sandbox = {
   },
   Blob: class Blob {},
   FileReader: class FileReader {},
-  URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
+  URL: TestURL,
   setTimeout,
 };
 sandbox.globalThis = sandbox;
@@ -98,6 +101,26 @@ test('options preserves grouped prompts and migrates settings storage', async ()
   assert.strictEqual(Object.prototype.hasOwnProperty.call(storageValues, 'gemini_panel_settings_v25'), true);
   assert.strictEqual(Object.prototype.hasOwnProperty.call(storageValues, 'gemini_panel_settings_v24'), false);
   console.log('options storage schema passed');
+});
+
+test('options saves normalized prompts and settings to the current keys', async () => {
+  elements['theme-name'].value = 'glass';
+  elements['panel-position'].value = 'left';
+  elements['panel-width'].value = '500';
+  elements['gist-url'].value = 'https://gist.github.com/user/abcdef1234567890';
+  elements['gist-file-name'].value = 'team.json';
+  elements['marketplace-url'].value = 'https://example.com/prompts.json';
+  elements['allowed-import-origins'].value = 'https://example.com, http://insecure.example';
+  await hooks.saveSettings();
+  assert.strictEqual(storageValues.gemini_panel_settings_v25.themeName, 'glass');
+  assert.strictEqual(storageValues.gemini_panel_settings_v25.panelWidth, 500);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(storageValues.gemini_panel_settings_v25.allowedImportOrigins)), ['https://example.com']);
+
+  elements['prompts-json'].value = JSON.stringify([{ name: 'Saved', text: 'Saved prompt' }]);
+  await hooks.savePromptsFromTextarea();
+  assert.deepStrictEqual(JSON.parse(storageValues.gemini_custom_prompts_v6), {
+    'Imported Prompts': [{ name: 'Saved', text: 'Saved prompt' }]
+  });
 });
 
 test('options migrates the oldest prompt key once and retires it', async () => {
