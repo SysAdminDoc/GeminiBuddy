@@ -70,7 +70,8 @@ function assertVersionConsistency(repoRoot = path.resolve(__dirname, '..')) {
     ], 'History storage key'),
     profiles: assertSynchronizedValues([
       extract(userscript, /const GM_PROFILES_KEY\s*=\s*['"]([^'"]+)/, 'userscript profiles key'),
-      extract(config, /export const GM_PROFILES_KEY\s*=\s*['"]([^'"]+)/, 'modular profiles key')
+      extract(config, /export const GM_PROFILES_KEY\s*=\s*['"]([^'"]+)/, 'modular profiles key'),
+      extract(storageSchema, /const PROFILES_KEY\s*=\s*['"]([^'"]+)/, 'storage schema profiles key')
     ], 'Profiles storage key')
   };
 

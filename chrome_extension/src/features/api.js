@@ -1,7 +1,7 @@
 // /src/features/api.js
 
 import { GM_xmlhttpRequest } from '../GM_wrappers.js';
-import { state, saveSettings, savePromptRollbackSnapshot } from '../state.js';
+import { state, saveSettings, savePromptRollbackSnapshot, recordDiagnosticEvent } from '../state.js';
 import { savePrompts, ensurePromptIDs, loadAndDisplayPrompts } from './prompts.js';
 import { DEFAULT_PROMPTS_URL } from '../config.js';
 import { showToast, showDecisionDialog } from '../utils.js';
@@ -26,11 +26,13 @@ export function fetchDefaultPrompts() {
                     await saveSettings();
                     resolve();
                 } catch (e) {
+                    recordDiagnosticEvent('default-prompts', 'error', e.message);
                     console.error("Failed to process default prompts:", e);
                     resolve();
                 }
             },
             onerror: function(response) {
+                recordDiagnosticEvent('default-prompts', 'error', response.statusText);
                 console.error("Error fetching default prompts:", response.statusText);
                 resolve();
             }
@@ -40,11 +42,13 @@ export function fetchDefaultPrompts() {
 
 export async function syncFromGist(isManual = false) {
     if (!state.settings.gistURL) {
+        recordDiagnosticEvent('sync', 'error', 'Gist URL is not configured.');
         if (isManual) showToast("Please provide a Gist URL in settings.", 2500, 'error');
         return;
     }
     const gistIdMatch = state.settings.gistURL.match(/gist\.github\.com\/[a-zA-Z0-9_-]+\/([a-f0-9]+)/);
     if (!gistIdMatch) {
+        recordDiagnosticEvent('sync', 'error', 'Invalid Gist URL format.');
         if (isManual) showToast("Invalid Gist URL format.", 2500, 'error');
         return;
     }
@@ -73,6 +77,7 @@ export async function syncFromGist(isManual = false) {
                             savePrompts();
                             loadAndDisplayPrompts(true);
                             if (isManual) showToast("Sync successful!", 2000, 'success');
+                            recordDiagnosticEvent('sync', 'success', 'Gist prompts loaded.');
                             resolve();
                         } else {
                             reject(new Error("Sync cancelled by user."));
@@ -81,11 +86,13 @@ export async function syncFromGist(isManual = false) {
                         throw new Error("No content found in Gist file.");
                     }
                 } catch (e) {
+                    recordDiagnosticEvent('sync', 'error', e.message);
                     if (isManual) showToast("Failed to parse Gist content: " + e.message, 3000, 'error');
                     reject(e);
                 }
             },
             onerror: function(response) {
+                recordDiagnosticEvent('sync', 'error', response.statusText);
                 if (isManual) showToast("Error fetching Gist: " + response.statusText, 3000, 'error');
                 reject(new Error(response.statusText));
             }
@@ -94,7 +101,10 @@ export async function syncFromGist(isManual = false) {
 }
 
 export async function callGeminiAPI(prompt) {
-    if (!state.secrets.geminiAPIKey) throw new Error('Google AI API key is not configured.');
+    if (!state.secrets.geminiAPIKey) {
+        recordDiagnosticEvent('api', 'error', 'Google AI API key is not configured.');
+        throw new Error('Google AI API key is not configured.');
+    }
     const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
     const response = await fetch(API_URL, {
         method: 'POST',
@@ -106,6 +116,7 @@ export async function callGeminiAPI(prompt) {
     });
     if (!response.ok) {
         const error = await response.json();
+        recordDiagnosticEvent('api', 'error', error.error?.message || `HTTP ${response.status}`);
         throw new Error(error.error.message);
     }
     const data = await response.json();

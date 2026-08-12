@@ -4,16 +4,45 @@
   const storage = chrome.storage.sync || chrome.storage.local;
   const secretStorage = chrome.storage.local;
   const CHUNK_SIZE = 7000;
+  const storageDiagnostics = {
+    backend: chrome.storage.sync ? 'chrome.storage.sync' : 'chrome.storage.local',
+    chunkSize: CHUNK_SIZE,
+    reads: 0,
+    writes: 0,
+    deletes: 0,
+    errors: 0,
+    chunkedReads: 0,
+    chunkedWrites: 0,
+    lastError: '',
+    snapshot() {
+      return {
+        backend: this.backend,
+        chunkSize: this.chunkSize,
+        reads: this.reads,
+        writes: this.writes,
+        deletes: this.deletes,
+        errors: this.errors,
+        chunkedReads: this.chunkedReads,
+        chunkedWrites: this.chunkedWrites,
+        lastError: this.lastError,
+        quota: 'browser-managed'
+      };
+    }
+  };
+  globalThis.GeminiBuddyStorageDiagnostics = storageDiagnostics;
 
   function chunkKey(key, index) {
     return `${key}__chunk_${index}`;
   }
 
   function storageGet(keys) {
+    storageDiagnostics.reads += 1;
     return new Promise((resolve, reject) => {
       storage.get(keys, result => {
         const error = chrome.runtime.lastError;
         if (error) {
+          storageDiagnostics.errors += 1;
+          storageDiagnostics.lastError = error.message;
           reject(new Error(error.message));
           return;
         }
@@ -23,10 +52,13 @@
   }
 
   function storageSet(values) {
+    storageDiagnostics.writes += 1;
     return new Promise((resolve, reject) => {
       storage.set(values, () => {
         const error = chrome.runtime.lastError;
         if (error) {
+          storageDiagnostics.errors += 1;
+          storageDiagnostics.lastError = error.message;
           reject(new Error(error.message));
           return;
         }
@@ -36,10 +68,13 @@
   }
 
   function storageRemove(keys) {
+    storageDiagnostics.deletes += 1;
     return new Promise((resolve, reject) => {
       storage.remove(keys, () => {
         const error = chrome.runtime.lastError;
         if (error) {
+          storageDiagnostics.errors += 1;
+          storageDiagnostics.lastError = error.message;
           reject(new Error(error.message));
           return;
         }
@@ -101,6 +136,7 @@
     if (!Object.prototype.hasOwnProperty.call(result, key)) return defaultValue;
     const storedValue = result[key];
     if (storedValue && storedValue.__gbChunked === true && Number.isInteger(storedValue.count)) {
+      storageDiagnostics.chunkedReads += 1;
       const keys = Array.from({ length: storedValue.count }, (_, index) => chunkKey(key, index));
       const chunkResult = await storageGet(keys);
       const serialized = keys.map(currentKey => chunkResult[currentKey] || '').join('');
@@ -119,6 +155,7 @@
     }
 
     const chunks = {};
+    storageDiagnostics.chunkedWrites += 1;
     const count = Math.ceil(serialized.length / CHUNK_SIZE);
     for (let index = 0; index < count; index += 1) {
       chunks[chunkKey(key, index)] = serialized.slice(index * CHUNK_SIZE, (index + 1) * CHUNK_SIZE);

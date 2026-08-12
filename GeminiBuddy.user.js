@@ -94,6 +94,43 @@
     let profileRegistry = { version: 1, activeProfileId: 'default', profiles: [] };
     let profilesReady = false;
     let detectedProfileAccountKey = '';
+    const diagnosticState = { events: [] };
+    if (!globalThis.GeminiBuddyStorageDiagnostics) {
+        globalThis.GeminiBuddyStorageDiagnostics = {
+            backend: 'userscript-managed',
+            chunkSize: null,
+            reads: 0,
+            writes: 0,
+            deletes: 0,
+            errors: 0,
+            chunkedReads: 0,
+            chunkedWrites: 0,
+            snapshot() { return { ...this, quota: 'not exposed by userscript API' }; }
+        };
+    }
+    function recordDiagnosticEvent(kind, status, detail = '') {
+        diagnosticState.events = [{ kind: String(kind || 'runtime'), status: String(status || 'info'), detail: String(detail || '').slice(0, 500), at: new Date().toISOString() }, ...diagnosticState.events].slice(0, 30);
+    }
+    function getDiagnosticsReport() {
+        const storage = globalThis.GeminiBuddyStorageDiagnostics;
+        return {
+            schemaVersion: 1,
+            generatedAt: new Date().toISOString(),
+            application: { version: PROJECT_VERSION, mode: 'userscript' },
+            browser: { userAgent: navigator.userAgent, platform: navigator.platform, language: navigator.language },
+            storage: storage?.snapshot ? storage.snapshot() : { backend: 'unknown', quota: 'not exposed' },
+            profiles: { count: profileRegistry.profiles.length, active: activePromptProfile()?.name || 'Default' },
+            data: { categoryCount: Object.keys(currentPrompts || {}).length, promptCount: Object.values(currentPrompts || {}).flat().length, historyEntryCount: Object.values(promptHistory || {}).flat().length },
+            selectors: {
+                main: Boolean(document.querySelector('main')),
+                chatHistory: Boolean(document.querySelector('main .chat-history')),
+                promptInput: Boolean(document.querySelector('main rich-textarea, div.ql-editor')),
+                sendButton: Boolean(document.querySelector('button.send-button, button[data-testid="send-button"]')),
+                panel: Boolean(document.querySelector('#gemini-prompt-panel-main'))
+            },
+            events: diagnosticState.events
+        };
+    }
 
     const defaultSettings = {
         themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
@@ -598,11 +635,13 @@
 
     async function syncFromGist(isManual = false) {
         if (!settings.gistURL) {
+            recordDiagnosticEvent('sync', 'error', 'Gist URL is not configured.');
             if (isManual) showToast("Please provide a Gist URL in settings.", 2500, 'error');
             return;
         }
         const gistId = extractGistIdFromUrl(settings.gistURL);
         if (!gistId) {
+            recordDiagnosticEvent('sync', 'error', 'Invalid Gist URL format.');
             if (isManual) showToast("Invalid Gist URL format.", 2500, 'error');
             return;
         }
@@ -630,6 +669,7 @@
                                 currentPrompts = newPrompts;
                                 savePrompts();
                                 if (isManual) showToast("Sync successful!", 2000, 'success');
+                                recordDiagnosticEvent('sync', 'success', 'Gist prompts loaded.');
                                 resolve(true); // Indicate that a sync happened
                             } else {
                                 reject(new Error("Sync cancelled by user."));
@@ -638,6 +678,7 @@
                             throw new Error("No content found in Gist file.");
                         }
                     } catch (e) {
+                        recordDiagnosticEvent('sync', 'error', e.message);
                         if (isManual) showToast("Failed to parse Gist content: " + e.message, 3000, 'error');
                         reject(e);
                     }
@@ -2510,6 +2551,34 @@
         apiKeyControls.className = 'input-with-button';
         apiKeyControls.append(apiKeyInput, clearApiKeyBtn);
         aiContent.appendChild(createSettingRow('gemini-api-key-input', 'Google AI API Key', 'Stored in local-only secret storage and never synced with settings.', apiKeyControls));
+        const diagnosticsButton = createButtonWithIcon('Download Diagnostics', null);
+        diagnosticsButton.type = 'button';
+        diagnosticsButton.addEventListener('click', () => {
+            recordDiagnosticEvent('diagnostics', 'success', 'Support report exported.');
+            const report = getDiagnosticsReport();
+            const anchor = document.createElement('a');
+            anchor.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(report, null, 2))}`;
+            anchor.download = `geminibuddy-diagnostics-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            showToast('Redacted diagnostics report downloaded.', 2500, 'success');
+        });
+        const refreshDiagnosticsButton = createButtonWithIcon('Refresh', null);
+        refreshDiagnosticsButton.type = 'button';
+        const diagnosticsOutput = document.createElement('pre');
+        diagnosticsOutput.className = 'diagnostics-output';
+        diagnosticsOutput.setAttribute('role', 'region');
+        diagnosticsOutput.setAttribute('aria-label', 'GeminiBuddy diagnostics report');
+        const renderDiagnostics = () => { diagnosticsOutput.textContent = JSON.stringify(getDiagnosticsReport(), null, 2); };
+        refreshDiagnosticsButton.addEventListener('click', renderDiagnostics);
+        const diagnosticsControls = document.createElement('div');
+        diagnosticsControls.className = 'button-group';
+        diagnosticsControls.append(refreshDiagnosticsButton, diagnosticsButton);
+        const diagnosticsSection = createSettingRow('diagnostics-export', 'Diagnostics & Support', 'Shows and exports versions, selector health, storage telemetry, profile counts, and recent errors without prompt text or secrets.', diagnosticsControls);
+        diagnosticsSection.appendChild(diagnosticsOutput);
+        aiContent.appendChild(diagnosticsSection);
+        renderDiagnostics();
 
         // Data Section
         const dataContent = createAccordionSection('Data & Sync', 'settings-data');
@@ -3117,9 +3186,11 @@
                 mergeImportedPromptGroups(groupsToMerge);
                 await Promise.all([savePrompts(), saveSettings()]);
                 renderAllPrompts();
+                recordDiagnosticEvent('import', 'success', `Imported ${pendingImport.promptCount} prompts.`);
                 showToast(`Imported ${pendingImport.promptCount} validated prompt${pendingImport.promptCount === 1 ? '' : 's'}.`, 2500, 'success');
                 closeModal();
             } catch (error) {
+                recordDiagnosticEvent('import', 'error', error.message);
                 pendingImport = null;
                 importBtn.textContent = 'Preview Import';
                 showToast('Error importing: ' + error.message, 3500, 'error');
@@ -4435,15 +4506,18 @@
 
     async function syncToGist() {
         if (!settings.gistURL) {
+            recordDiagnosticEvent('sync', 'error', 'Gist URL is not configured.');
             showToast("Please provide a Gist URL in settings.", 2500, 'error');
             return;
         }
         if (!secrets.gistToken) {
+            recordDiagnosticEvent('sync', 'error', 'Gist token is not configured.');
             showToast("A GitHub token is required to push to Gist.", 3000, 'error');
             return;
         }
         const gistId = extractGistIdFromUrl(settings.gistURL);
         if (!gistId) {
+            recordDiagnosticEvent('sync', 'error', 'Invalid Gist URL format.');
             showToast("Invalid Gist URL format.", 2500, 'error');
             return;
         }
@@ -4468,14 +4542,17 @@
                 }),
                 onload: function(response) {
                     if (response.status >= 200 && response.status < 300) {
+                        recordDiagnosticEvent('sync', 'success', 'Gist prompts pushed.');
                         showToast("Gist push complete.", 2000, 'success');
                         resolve(true);
                         return;
                     }
+                    recordDiagnosticEvent('sync', 'error', `HTTP ${response.status}`);
                     showToast(`Gist push failed: HTTP ${response.status}`, 3500, 'error');
                     reject(new Error(response.responseText || `HTTP ${response.status}`));
                 },
                 onerror: function(response) {
+                    recordDiagnosticEvent('sync', 'error', response.statusText);
                     showToast("Error pushing to Gist.", 3000, 'error');
                     reject(new Error(response.statusText || "Gist push failed."));
                 }
@@ -4547,10 +4624,12 @@
     async function importMarketplacePrompts() {
         const url = (settings.marketplaceURL || '').trim();
         if (!url) {
+            recordDiagnosticEvent('marketplace', 'error', 'Marketplace URL is not configured.');
             showToast("Please provide a marketplace JSON URL.", 2500, 'error');
             return;
         }
         if (!(await authorizeRemoteUrl(url))) {
+            recordDiagnosticEvent('marketplace', 'error', 'Remote origin was not authorized.');
             showToast('Marketplace imports require an allowed HTTPS origin or browser permission.', 3500, 'error');
             return;
         }
@@ -4567,15 +4646,18 @@
                         mergePromptGroups(promptGroups);
                         Promise.all([savePrompts(), saveSettings()]).then(() => {
                             renderAllPrompts();
+                            recordDiagnosticEvent('marketplace', 'success', `Imported ${promptCount} prompts.`);
                             showToast(`Imported ${promptCount} marketplace prompt${promptCount === 1 ? '' : 's'}.`, 2500, 'success');
                             resolve(true);
                         });
                     } catch (err) {
+                        recordDiagnosticEvent('marketplace', 'error', err.message);
                         showToast(err.message || "Marketplace import failed.", 3500, 'error');
                         reject(err);
                     }
                 },
                 onerror: function(response) {
+                    recordDiagnosticEvent('marketplace', 'error', response.statusText);
                     showToast("Error fetching marketplace JSON.", 3000, 'error');
                     reject(new Error(response.statusText || "Marketplace fetch failed."));
                 }

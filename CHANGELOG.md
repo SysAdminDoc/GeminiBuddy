@@ -14,6 +14,7 @@ All notable changes to GeminiBuddy will be documented in this file.
 - Expanded deterministic coverage for Gist transport failures, marketplace/import normalization, options saves, prompt insertion fallbacks, and unsupported clipboard paths.
 - Added accessible modal focus management, keyboard-operable prompt/category controls, visible focus indicators, and an accessible group-rename dialog across both runtime surfaces.
 - Added account-aware and manual prompt profiles with isolated settings/history, lossless switching, and single/all profile backup and restore.
+- Added redacted diagnostics views and JSON exports with runtime metadata, selector health, storage telemetry, profile/data counts, and recent sync/import/API failures.
 
 ## [v53.0.0] - 2026-06-27
 

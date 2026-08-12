@@ -1,6 +1,6 @@
 // /src/ui/settingsUI.js
 
-import { state, saveSettings, saveSecrets, clearSecret, getActiveProfile, switchProfile, createManualProfile, deleteActiveProfile, exportProfiles, importProfiles } from '../state.js';
+import { state, saveSettings, saveSecrets, clearSecret, getActiveProfile, switchProfile, createManualProfile, deleteActiveProfile, exportProfiles, importProfiles, getDiagnosticsReport, recordDiagnosticEvent } from '../state.js';
 import { icons } from '../icons.js';
 import { capitalizeFirstLetter, installModalAccessibility, openAccessibleModal, closeAccessibleModal, showTextInputDialog, showDecisionDialog, showToast } from '../utils.js';
 import { presetThemes, FULL_WIDTH_STYLE_ID, FULL_WIDTH_CSS } from '../config.js';
@@ -140,6 +140,10 @@ function downloadJson(filename, value) {
     anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
+}
+
+function getDiagnosticsFileName() {
+    return `geminibuddy-diagnostics-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
 }
 
 function createSettingRow(id, label, description, control) {
@@ -427,6 +431,34 @@ function populateSettingsPanes() {
     apiKeyControls.className = 'input-with-button';
     apiKeyControls.append(apiKeyInput, clearApiKeyBtn);
     panes.ai.appendChild(createSettingRow('setting-api-key', 'Google AI API Key', 'Stored in local-only secret storage and never synced with settings.', apiKeyControls));
+
+    const diagnosticsButton = document.createElement('button');
+    diagnosticsButton.type = 'button';
+    diagnosticsButton.className = 'settings-styled-button';
+    diagnosticsButton.textContent = 'Download Diagnostics';
+    const refreshDiagnosticsButton = document.createElement('button');
+    refreshDiagnosticsButton.type = 'button';
+    refreshDiagnosticsButton.className = 'settings-styled-button';
+    refreshDiagnosticsButton.textContent = 'Refresh';
+    const diagnosticsOutput = document.createElement('pre');
+    diagnosticsOutput.className = 'diagnostics-output';
+    diagnosticsOutput.setAttribute('role', 'region');
+    diagnosticsOutput.setAttribute('aria-label', 'GeminiBuddy diagnostics report');
+    const renderDiagnostics = () => { diagnosticsOutput.textContent = JSON.stringify(getDiagnosticsReport(), null, 2); };
+    refreshDiagnosticsButton.addEventListener('click', renderDiagnostics);
+    diagnosticsButton.addEventListener('click', () => {
+        const report = getDiagnosticsReport();
+        recordDiagnosticEvent('diagnostics', 'success', 'Support report exported.');
+        downloadJson(getDiagnosticsFileName(), getDiagnosticsReport());
+        showToast('Redacted diagnostics report downloaded.', 2500, 'success');
+    });
+    const diagnosticsControls = document.createElement('div');
+    diagnosticsControls.className = 'button-group';
+    diagnosticsControls.append(refreshDiagnosticsButton, diagnosticsButton);
+    const diagnosticsSection = createSettingRow('diagnostics-export', 'Diagnostics & Support', 'Shows and exports versions, selector health, storage telemetry, profile counts, and recent errors without prompt text or secrets.', diagnosticsControls);
+    diagnosticsSection.appendChild(diagnosticsOutput);
+    panes.ai.appendChild(diagnosticsSection);
+    renderDiagnostics();
 
     const gistUrlInput = document.createElement('input');
     gistUrlInput.type = 'url';

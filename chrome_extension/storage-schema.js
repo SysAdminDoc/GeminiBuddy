@@ -5,6 +5,7 @@
   const PROMPTS_KEY = 'gemini_custom_prompts_v6';
   const SETTINGS_KEY = 'gemini_panel_settings_v25';
   const HISTORY_KEY = 'gemini_prompt_history_v1';
+  const PROFILES_KEY = 'gemini_prompt_profiles_v1';
   const LEGACY_PROMPT_KEYS = Object.freeze(['gemini_custom_prompts_v5', 'gemini_custom_prompts_v2']);
   const LEGACY_SETTINGS_KEYS = Object.freeze(['gemini_panel_settings_v24']);
   const STORAGE_MIGRATIONS = Object.freeze([
@@ -127,6 +128,7 @@
     PROMPTS_KEY,
     SETTINGS_KEY,
     HISTORY_KEY,
+    PROFILES_KEY,
     LEGACY_PROMPT_KEYS,
     LEGACY_SETTINGS_KEYS,
     STORAGE_MIGRATIONS,

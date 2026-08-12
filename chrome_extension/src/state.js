@@ -1,7 +1,7 @@
 // /src/state.js
 
 import { GM_getValue, GM_setValue, GM_deleteValue, GM_getLocalValue, GM_setLocalValue, GM_deleteLocalValue } from './GM_wrappers.js';
-import { defaultSettings, GM_PROMPTS_KEY, GM_SETTINGS_KEY, GM_HISTORY_KEY, GM_PROFILES_KEY, GM_PROFILE_PROMPTS_PREFIX, GM_PROFILE_SETTINGS_PREFIX, GM_PROFILE_HISTORY_PREFIX, GM_ROLLBACK_KEY, GM_SECRETS_KEY, LEGACY_SETTINGS_KEYS } from './config.js';
+import { defaultSettings, PROJECT_VERSION, GM_PROMPTS_KEY, GM_SETTINGS_KEY, GM_HISTORY_KEY, GM_PROFILES_KEY, GM_PROFILE_PROMPTS_PREFIX, GM_PROFILE_SETTINGS_PREFIX, GM_PROFILE_HISTORY_PREFIX, GM_ROLLBACK_KEY, GM_SECRETS_KEY, LEGACY_SETTINGS_KEYS } from './config.js';
 import { showToast } from './utils.js';
 
 export const state = {
@@ -37,12 +37,58 @@ export const state = {
     profileRegistry: { version: 1, activeProfileId: 'default', profiles: [] },
     profilesReady: false,
     detectedProfileAccountKey: '',
+    diagnostics: { events: [] },
     isManuallyLocked: false,
     isFormActiveLock: false,
     lastFetchedUrl: null,
     generationObserver: null,
     isGenerating: false,
 };
+
+export function recordDiagnosticEvent(kind, status, detail = '') {
+    const event = {
+        kind: String(kind || 'runtime'),
+        status: String(status || 'info'),
+        detail: String(detail || '').slice(0, 500),
+        at: new Date().toISOString()
+    };
+    state.diagnostics.events = [event, ...(state.diagnostics.events || [])].slice(0, 30);
+}
+
+function getStorageDiagnostics() {
+    try {
+        const diagnostics = globalThis.GeminiBuddyStorageDiagnostics;
+        if (diagnostics?.snapshot) return diagnostics.snapshot();
+        return diagnostics ? { ...diagnostics } : { backend: 'unknown', quota: 'not exposed' };
+    } catch (_error) {
+        return { backend: 'unavailable', quota: 'not exposed' };
+    }
+}
+
+export function getDiagnosticsReport() {
+    const selectors = {
+        main: Boolean(document.querySelector('main')),
+        chatHistory: Boolean(document.querySelector('main .chat-history')),
+        promptInput: Boolean(document.querySelector('main rich-textarea, div.ql-editor')),
+        sendButton: Boolean(document.querySelector('button.send-button, button[data-testid="send-button"]')),
+        panel: Boolean(document.querySelector('#gemini-prompt-panel-main'))
+    };
+    return {
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString(),
+        application: { version: PROJECT_VERSION, mode: 'extension-content-script' },
+        browser: { userAgent: navigator.userAgent, platform: navigator.platform, language: navigator.language },
+        storage: getStorageDiagnostics(),
+        profiles: { count: state.profileRegistry.profiles.length, active: getActiveProfile()?.name || 'Default' },
+        data: {
+            categoryCount: Object.keys(state.currentPrompts || {}).length,
+            promptCount: Object.values(state.currentPrompts || {}).flat().length,
+            historyEntryCount: Object.values(state.promptHistory || {}).flat().length
+        },
+        selectors,
+        events: state.diagnostics.events || []
+    };
+}
 
 const PROFILE_SCHEMA_VERSION = 1;
 

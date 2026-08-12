@@ -133,6 +133,7 @@ export const cssStyles = `
     .modal-close-btn { background: none; border: none; color: var(--panel-text); cursor: pointer; padding: 5px; border-radius: 50%; display:flex; }
     .modal-close-btn:hover { background-color: rgba(255,255,255,0.1); }
     .modal-body { overflow-y: auto; padding-right: 10px; }
+    .diagnostics-output { margin: 10px 0 0; max-height: 220px; overflow: auto; padding: 10px; background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); border-radius: 4px; font: 11px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
     .modal-body > form > .form-section { margin-bottom: 20px; }
     .form-section { display: flex; flex-direction: column; gap: 8px; }
     .form-row { display: flex; gap: 20px; align-items: center; margin-bottom: 15px; }

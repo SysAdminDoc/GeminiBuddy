@@ -78,6 +78,20 @@
         </label>
       </div>
     </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Diagnostics &amp; Support</h2>
+          <p class="muted">Download a redacted report with version, storage, profile, selector, and recent error details. Prompt text and credentials are excluded.</p>
+        </div>
+        <div class="actions">
+          <button id="refresh-diagnostics" type="button">Refresh</button>
+          <button id="export-diagnostics" type="button">Download diagnostics</button>
+        </div>
+      </div>
+      <pre id="diagnostics-preview" class="diagnostics-output" role="region" aria-label="GeminiBuddy diagnostics report"></pre>
+    </section>
   </main>
 
   <script src="storage-schema.js"></script>

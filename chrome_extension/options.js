@@ -7,6 +7,7 @@
   const {
     PROMPTS_KEY,
     SETTINGS_KEY,
+    PROFILES_KEY,
     LEGACY_PROMPT_KEYS,
     LEGACY_SETTINGS_KEYS,
     defaultSettings,
@@ -28,12 +29,46 @@
   const gistFileNameEl = document.getElementById('gist-file-name');
   const marketplaceUrlEl = document.getElementById('marketplace-url');
   const allowedImportOriginsEl = document.getElementById('allowed-import-origins');
+  const diagnosticsButton = document.getElementById('export-diagnostics');
+  const refreshDiagnosticsButton = document.getElementById('refresh-diagnostics');
+  const diagnosticsPreview = document.getElementById('diagnostics-preview');
 
   let settings = {};
 
   function setStatus(message, type = '') {
     statusEl.textContent = message;
     statusEl.className = `status ${type}`.trim();
+  }
+
+  async function getDiagnosticsReport() {
+    const profiles = await getStoredValue(PROFILES_KEY, null);
+    const prompts = normalizePromptLibrary(promptsJsonEl.value || '{}');
+    return {
+      schemaVersion: 1,
+      generatedAt: new Date().toISOString(),
+      application: { version: (chrome.runtime.getManifest?.() || {}).version || 'unknown', mode: 'options' },
+      browser: { userAgent: globalThis.navigator?.userAgent || 'unknown', platform: globalThis.navigator?.platform || 'unknown', language: globalThis.navigator?.language || 'unknown' },
+      storage: { backend: storage === chrome.storage.sync ? 'chrome.storage.sync' : 'chrome.storage.local', chunkSize: CHUNK_SIZE, note: 'Quota is browser-managed.' },
+      profiles: { count: Array.isArray(profiles?.profiles) ? profiles.profiles.length : 1, active: profiles?.activeProfileId || 'default' },
+      data: { categoryCount: Object.keys(prompts).length, promptCount: Object.values(prompts).flat().length },
+      selectors: { optionsStatus: Boolean(statusEl), promptsEditor: Boolean(promptsJsonEl), settingsControls: Boolean(themeNameEl && panelPositionEl) },
+      events: []
+    };
+  }
+
+  async function downloadDiagnostics() {
+    const blob = new Blob([JSON.stringify(await getDiagnosticsReport(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `geminibuddy-diagnostics-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setStatus('Redacted diagnostics report downloaded', 'success');
+  }
+
+  async function renderDiagnostics() {
+    diagnosticsPreview.textContent = JSON.stringify(await getDiagnosticsReport(), null, 2);
   }
 
   function chunkKey(key, index) {
@@ -233,12 +268,15 @@
     if (file) importPrompts(file);
     event.target.value = '';
   });
+  diagnosticsButton.addEventListener('click', downloadDiagnostics);
+  refreshDiagnosticsButton.addEventListener('click', () => renderDiagnostics().catch(error => setStatus(error.message, 'error')));
 
   [themeNameEl, panelPositionEl, panelWidthEl, gistUrlEl, gistFileNameEl, marketplaceUrlEl, allowedImportOriginsEl].forEach(control => {
     control.addEventListener('change', () => saveSettings().catch(error => setStatus(error.message, 'error')));
   });
 
   loadState().catch(error => setStatus(error.message, 'error'));
+  renderDiagnostics().catch(error => setStatus(error.message, 'error'));
 
   if (globalThis.__GEMINIBUDDY_OPTIONS_TEST_HOOKS__) {
     Object.assign(globalThis.__GEMINIBUDDY_OPTIONS_TEST_HOOKS__, {
@@ -250,7 +288,8 @@
       normalizePromptLibrary,
       normalizeSettings,
       createPromptExport,
-      parsePromptImport
+      parsePromptImport,
+      getDiagnosticsReport
     });
   }
 })();
