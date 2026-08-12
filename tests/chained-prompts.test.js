@@ -223,6 +223,27 @@ assert.strictEqual(marketplaceGroups.Team[0].name, 'Summarize');
 assert.strictEqual(marketplaceGroups.Team[0].text, 'Summarize this.');
 assert.strictEqual(marketplaceGroups.Team[0].tags, 'team, summary');
 
+hooks.setTestState({
+  prompts: { Team: [{ id: 'existing', name: 'Existing', text: 'Old text' }] },
+  settings: { marketplaceCatalogs: [] }
+});
+const catalog = JSON.parse(JSON.stringify(hooks.buildMarketplaceCatalog({
+  catalogName: 'Team Catalog',
+  schemaVersion: 2,
+  updatedAt: '2026-08-12T12:00:00Z',
+  category: 'Team',
+  prompts: [
+    { id: 'existing', name: 'Existing', text: 'New text' },
+    { id: 'new', name: 'New prompt', text: 'New prompt text' }
+  ]
+}, 'https://catalog.example/prompts.json')));
+assert.strictEqual(catalog.sourceName, 'Team Catalog');
+assert.strictEqual(catalog.schemaVersion, 2);
+assert.strictEqual(catalog.promptCount, 2);
+assert.strictEqual(catalog.duplicateCount, 1);
+assert.deepStrictEqual(catalog.changedPrompts.map(prompt => prompt.name), ['Existing']);
+assert.strictEqual(hooks.createMarketplaceCatalogExport(catalog).provenance.sourceUrl, 'https://catalog.example/prompts.json');
+
 const sharePayload = { name: 'Shared', text: 'Use unicode: café', tags: 'team' };
 const encodedSharePayload = hooks.encodeSharePayload(sharePayload);
 assert.deepStrictEqual(

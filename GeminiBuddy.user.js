@@ -136,7 +136,7 @@
         themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
         fontFamily: 'Verdana, sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
         collapsedCategories: [], favorites: [], groupOrder: [], tagOrder: [], initiallyCollapsed: false, copyButtonOrderSwapped: false,
-        showTags: true, showPins: true, enableAIenhancer: true, gistURL: '', gistFileName: 'gemini-prompts.json', marketplaceURL: '', allowedImportOrigins: [],
+        showTags: true, showPins: true, enableAIenhancer: true, gistURL: '', gistFileName: 'gemini-prompts.json', marketplaceURL: '', marketplaceCatalogs: [], allowedImportOrigins: [],
         enableMiniMode: true, groupByTags: true, autoCopyCodeOnCompletion: true,
         groupColors: {},
         colors: {
@@ -267,6 +267,7 @@
         settings.groupOrder = settings.groupOrder || [];
         settings.tagOrder = settings.tagOrder || [];
         settings.allowedImportOrigins = normalizeAllowedOrigins(settings.allowedImportOrigins);
+        settings.marketplaceCatalogs = Array.isArray(settings.marketplaceCatalogs) ? settings.marketplaceCatalogs : [];
     }
 
     function getRemoteOrigin(value) {
@@ -895,6 +896,9 @@
         .prompt-button-controls { display: none; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); gap: 2px; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 2px; align-items: center; }
         .prompt-button-wrapper:hover .prompt-button-controls { display: flex; }
         .prompt-button-wrapper:focus-within .prompt-button-controls { display: flex; }
+        .marketplace-catalogs { display: grid; gap: 8px; }
+        .marketplace-catalog-card { display: grid; gap: 6px; padding: 8px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; }
+        .marketplace-catalog-card small { color: var(--panel-text); opacity: .8; word-break: break-word; }
         .prompt-button-controls button { background: transparent; border: none; cursor: pointer; padding: 3px; border-radius: 50%; display:flex; align-items:center; color: var(--panel-text); }
         .prompt-button-controls button:hover { background-color: rgba(255,255,255,0.15); }
         .favorite-btn.favorited, .pin-btn.pinned { color: var(--favorite-color); }
@@ -2633,6 +2637,53 @@
         marketplaceContainer.className = 'input-with-button';
         marketplaceContainer.append(marketplaceUrlInput, marketplaceImportBtn);
         dataContent.appendChild(createSettingRow('marketplace-url-input', 'Prompt Marketplace JSON', 'Remote curated prompt list to import.', marketplaceContainer));
+        const marketplaceCatalogsContainer = document.createElement('div');
+        marketplaceCatalogsContainer.className = 'marketplace-catalogs';
+        const renderMarketplaceCatalogs = () => {
+            while (marketplaceCatalogsContainer.firstChild) marketplaceCatalogsContainer.removeChild(marketplaceCatalogsContainer.firstChild);
+            const catalogs = Array.isArray(settings.marketplaceCatalogs) ? settings.marketplaceCatalogs : [];
+            if (!catalogs.length) {
+                const empty = document.createElement('p');
+                empty.className = 'description';
+                empty.textContent = 'No approved catalogs yet.';
+                marketplaceCatalogsContainer.appendChild(empty);
+                return;
+            }
+            catalogs.forEach(catalog => {
+                const card = document.createElement('div');
+                card.className = 'marketplace-catalog-card';
+                const summary = document.createElement('div');
+                summary.textContent = `${catalog.sourceName} · schema ${catalog.schemaVersion} · ${catalog.promptCount} prompts · ${catalog.duplicateCount} duplicates`;
+                const provenance = document.createElement('small');
+                provenance.textContent = `${catalog.sourceUrl} · updated ${catalog.updatedAt || 'not supplied'} · fetched ${catalog.fetchedAt || 'unknown'}`;
+                const actions = document.createElement('div');
+                actions.className = 'button-group';
+                const pinBtn = createButtonWithIcon(catalog.pinned ? 'Unpin' : 'Pin', null);
+                pinBtn.type = 'button';
+                pinBtn.addEventListener('click', () => { catalog.pinned = !catalog.pinned; saveSettings().then(renderMarketplaceCatalogs); });
+                const refreshBtn = createButtonWithIcon('Refresh', null);
+                refreshBtn.type = 'button';
+                refreshBtn.addEventListener('click', () => importMarketplacePrompts(catalog.sourceUrl).then(renderMarketplaceCatalogs).catch(error => showToast(error.message, 3500, 'error')));
+                const exportBtn = createButtonWithIcon('Export', null);
+                exportBtn.type = 'button';
+                exportBtn.addEventListener('click', () => {
+                    const anchor = document.createElement('a');
+                    anchor.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(createMarketplaceCatalogExport(catalog), null, 2))}`;
+                    anchor.download = `${catalog.sourceName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-catalog.json`;
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    anchor.remove();
+                });
+                const removeBtn = createButtonWithIcon('Remove', null);
+                removeBtn.type = 'button';
+                removeBtn.addEventListener('click', () => { settings.marketplaceCatalogs = catalogs.filter(item => item.id !== catalog.id); saveSettings().then(renderMarketplaceCatalogs); });
+                actions.append(pinBtn, refreshBtn, exportBtn, removeBtn);
+                card.append(summary, provenance, actions);
+                marketplaceCatalogsContainer.appendChild(card);
+            });
+        };
+        dataContent.appendChild(createSettingRow('marketplace-catalogs', 'Approved Marketplace Catalogs', 'Pinned catalogs retain provenance and can be refreshed, removed, or exported with source metadata.', marketplaceCatalogsContainer));
+        renderMarketplaceCatalogs();
         const importExportButton = createButtonWithIcon('Local Import / Export', icons.importExport.cloneNode(true));
         importExportButton.classList.add('copy-btn');
         importExportButton.style.gridColumn = '1 / -1';
@@ -4387,6 +4438,9 @@
             normalizeGemUrl,
             extractGistIdFromUrl,
             normalizeMarketplacePrompts,
+            buildMarketplaceCatalog,
+            createMarketplaceCatalogExport,
+            importMarketplacePrompts,
             normalizePromptImport,
             buildPromptImportPreview,
             createPromptExport,
@@ -4621,8 +4675,61 @@
         ensurePromptIDs(currentPrompts);
     }
 
-    async function importMarketplacePrompts() {
-        const url = (settings.marketplaceURL || '').trim();
+    function marketplaceCatalogSourceName(data, sourceUrl) {
+        try {
+            const hostname = new URL(sourceUrl).hostname.replace(/^www\./, '');
+            return String(data?.catalogName || data?.sourceName || data?.name || data?.title || hostname || 'Marketplace catalog').trim();
+        } catch (_error) {
+            return String(data?.catalogName || data?.sourceName || data?.name || data?.title || 'Marketplace catalog').trim();
+        }
+    }
+    function buildMarketplaceCatalog(data, sourceUrl, previousCatalog = null) {
+        const groups = normalizeMarketplacePrompts(data);
+        const incoming = Object.values(groups).flat();
+        const existingById = new Map(Object.values(currentPrompts || {}).flat().filter(Boolean).map(prompt => [String(prompt.id || ''), prompt]));
+        const duplicatePrompts = incoming.filter(prompt => existingById.has(String(prompt.id || '')));
+        const changedPrompts = duplicatePrompts.filter(prompt => {
+            const existing = existingById.get(String(prompt.id || ''));
+            return existing.text !== prompt.text || existing.name !== prompt.name;
+        }).map(prompt => ({ id: prompt.id, name: prompt.name })).slice(0, 20);
+        return {
+            id: String(sourceUrl),
+            sourceUrl: String(sourceUrl),
+            sourceName: marketplaceCatalogSourceName(data, sourceUrl),
+            schemaVersion: Number(data?.catalogSchemaVersion ?? data?.schemaVersion ?? data?.version ?? 1),
+            updatedAt: String(data?.updatedAt || data?.updated_at || data?.lastUpdated || '').trim() || null,
+            fetchedAt: new Date().toISOString(),
+            groupCount: Object.keys(groups).length,
+            promptCount: incoming.length,
+            duplicateCount: duplicatePrompts.length,
+            changedPrompts,
+            pinned: previousCatalog?.pinned === true,
+            groups
+        };
+    }
+    function marketplaceCatalogPreviewMessage(catalog) {
+        const changed = catalog.changedPrompts.length ? `Changed prompts: ${catalog.changedPrompts.map(prompt => prompt.name).join(', ')}${catalog.changedPrompts.length >= 20 ? ', …' : ''}.` : 'Changed prompts: none.';
+        return [`Source: ${catalog.sourceName}`, `URL: ${catalog.sourceUrl}`, `Schema: ${catalog.schemaVersion} · Updated: ${catalog.updatedAt || 'not supplied'}`, `Items: ${catalog.promptCount} in ${catalog.groupCount} groups · Duplicates: ${catalog.duplicateCount}`, changed, 'Approve this catalog to merge its prompts into the active library.'].join('\n');
+    }
+    function upsertMarketplaceCatalog(catalog) {
+        const catalogs = Array.isArray(settings.marketplaceCatalogs) ? settings.marketplaceCatalogs : [];
+        const index = catalogs.findIndex(item => item.id === catalog.id || item.sourceUrl === catalog.sourceUrl);
+        if (index >= 0) catalogs.splice(index, 1, catalog);
+        else catalogs.push(catalog);
+        settings.marketplaceCatalogs = catalogs;
+    }
+    function createMarketplaceCatalogExport(catalog) {
+        return {
+            kind: 'geminibuddy-marketplace-catalog',
+            schemaVersion: 1,
+            exportedAt: new Date().toISOString(),
+            provenance: { sourceUrl: catalog.sourceUrl, sourceName: catalog.sourceName, catalogSchemaVersion: catalog.schemaVersion, updatedAt: catalog.updatedAt, fetchedAt: catalog.fetchedAt },
+            catalog
+        };
+    }
+
+    async function importMarketplacePrompts(sourceUrl = settings.marketplaceURL) {
+        const url = String(sourceUrl || '').trim();
         if (!url) {
             recordDiagnosticEvent('marketplace', 'error', 'Marketplace URL is not configured.');
             showToast("Please provide a marketplace JSON URL.", 2500, 'error');
@@ -4638,17 +4745,26 @@
             GM_xmlhttpRequest({
                 method: "GET",
                 url,
-                onload: function(response) {
+                onload: async function(response) {
                     try {
-                        const promptGroups = normalizeMarketplacePrompts(JSON.parse(response.responseText));
-                        const promptCount = Object.values(promptGroups).reduce((sum, prompts) => sum + prompts.length, 0);
-                        if (promptCount === 0) throw new Error("No importable prompts found.");
-                        mergePromptGroups(promptGroups);
+                        const data = JSON.parse(response.responseText);
+                        const previous = (settings.marketplaceCatalogs || []).find(item => item.sourceUrl === url);
+                        const catalog = buildMarketplaceCatalog(data, url, previous);
+                        if (catalog.promptCount === 0) throw new Error("No importable prompts found.");
+                        const approved = await showDecisionDialog({ title: 'Review marketplace catalog', message: marketplaceCatalogPreviewMessage(catalog), confirmLabel: 'Import catalog' });
+                        if (!approved) {
+                            recordDiagnosticEvent('marketplace', 'cancelled', url);
+                            resolve(false);
+                            return;
+                        }
+                        await savePromptRollbackSnapshot('marketplace-catalog-import');
+                        mergePromptGroups(catalog.groups);
+                        upsertMarketplaceCatalog(catalog);
                         Promise.all([savePrompts(), saveSettings()]).then(() => {
                             renderAllPrompts();
-                            recordDiagnosticEvent('marketplace', 'success', `Imported ${promptCount} prompts.`);
-                            showToast(`Imported ${promptCount} marketplace prompt${promptCount === 1 ? '' : 's'}.`, 2500, 'success');
-                            resolve(true);
+                            recordDiagnosticEvent('marketplace', 'success', `Imported ${catalog.promptCount} prompts from ${catalog.sourceName}.`);
+                            showToast(`Imported ${catalog.promptCount} verified marketplace prompt${catalog.promptCount === 1 ? '' : 's'}.`, 2500, 'success');
+                            resolve(catalog);
                         });
                     } catch (err) {
                         recordDiagnosticEvent('marketplace', 'error', err.message);

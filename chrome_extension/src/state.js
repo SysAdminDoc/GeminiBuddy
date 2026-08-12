@@ -106,6 +106,7 @@ function normalizeProfileSettings(raw) {
     settings.collapsedCategories = Array.isArray(source.collapsedCategories) ? [...source.collapsedCategories] : [];
     settings.favorites = Array.isArray(source.favorites) ? [...source.favorites] : [];
     settings.allowedImportOrigins = Array.isArray(source.allowedImportOrigins) ? [...source.allowedImportOrigins] : [];
+    settings.marketplaceCatalogs = Array.isArray(source.marketplaceCatalogs) ? cloneValue(source.marketplaceCatalogs) : [];
     delete settings.geminiAPIKey;
     delete settings.gistToken;
     return settings;

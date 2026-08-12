@@ -15,6 +15,7 @@ All notable changes to GeminiBuddy will be documented in this file.
 - Added accessible modal focus management, keyboard-operable prompt/category controls, visible focus indicators, and an accessible group-rename dialog across both runtime surfaces.
 - Added account-aware and manual prompt profiles with isolated settings/history, lossless switching, and single/all profile backup and restore.
 - Added redacted diagnostics views and JSON exports with runtime metadata, selector health, storage telemetry, profile/data counts, and recent sync/import/API failures.
+- Added marketplace catalog provenance and approval previews with schema/timestamp/count metadata, duplicate/change detection, rollback-protected merges, and catalog pin/refresh/remove/export controls.
 
 ## [v53.0.0] - 2026-06-27
 

@@ -44,7 +44,7 @@ export const defaultSettings = {
     themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
     fontFamily: 'Verdana, sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
     collapsedCategories: [], favorites: [], groupOrder: [], tagOrder: [], initiallyCollapsed: false, copyButtonOrderSwapped: false,
-    showTags: true, showPins: true, enableAIenhancer: true, gistURL: '',
+    showTags: true, showPins: true, enableAIenhancer: true, gistURL: '', marketplaceURL: '', marketplaceCatalogs: [],
     allowedImportOrigins: [],
     enableMiniMode: true, groupByTags: true, autoCopyCodeOnCompletion: true,
     settingsTheme: 'dark',

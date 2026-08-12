@@ -5,7 +5,7 @@ import { icons } from '../icons.js';
 import { capitalizeFirstLetter, installModalAccessibility, openAccessibleModal, closeAccessibleModal, showTextInputDialog, showDecisionDialog, showToast } from '../utils.js';
 import { presetThemes, FULL_WIDTH_STYLE_ID, FULL_WIDTH_CSS } from '../config.js';
 import { applySettingsAndTheme, renderActionButtons, renderAllPrompts } from './mainPanel.js';
-import { syncFromGist } from '../features/api.js';
+import { syncFromGist, importMarketplaceCatalog, removeMarketplaceCatalog, toggleMarketplaceCatalogPinned, createMarketplaceCatalogExport } from '../features/api.js';
 import { showImportExportModal, populateAnalytics } from './modals.js';
 
 function toggleFullWidth(enable) {
@@ -476,6 +476,71 @@ function populateSettingsPanes() {
     syncBtn.addEventListener('click', () => syncFromGist(true));
     const syncRow = createSettingRow('gist-sync-action', 'Sync Action', 'Manually trigger a sync from the Gist URL provided above.', syncBtn);
     panes.ai.appendChild(syncRow);
+
+    const marketplaceUrlInput = document.createElement('input');
+    marketplaceUrlInput.type = 'url';
+    marketplaceUrlInput.id = 'setting-marketplace-url';
+    marketplaceUrlInput.value = state.settings.marketplaceURL || '';
+    marketplaceUrlInput.placeholder = 'https://example.com/catalog.json';
+    marketplaceUrlInput.addEventListener('change', event => {
+        state.settings.marketplaceURL = event.target.value.trim();
+        saveSettings();
+    });
+    const marketplaceImportBtn = document.createElement('button');
+    marketplaceImportBtn.type = 'button';
+    marketplaceImportBtn.className = 'settings-styled-button';
+    marketplaceImportBtn.textContent = 'Review Catalog';
+    marketplaceImportBtn.addEventListener('click', () => importMarketplaceCatalog().catch(error => showToast(error.message, 3500, 'error')));
+    const marketplaceControls = document.createElement('div');
+    marketplaceControls.className = 'input-with-button';
+    marketplaceControls.append(marketplaceUrlInput, marketplaceImportBtn);
+    panes.ai.appendChild(createSettingRow('marketplace-url', 'Marketplace Catalog JSON', 'Fetch a catalog, review provenance and changes, then approve its merge.', marketplaceControls));
+
+    const catalogsContainer = document.createElement('div');
+    catalogsContainer.className = 'marketplace-catalogs';
+    const renderCatalogs = () => {
+        while (catalogsContainer.firstChild) catalogsContainer.removeChild(catalogsContainer.firstChild);
+        const catalogs = Array.isArray(state.settings.marketplaceCatalogs) ? state.settings.marketplaceCatalogs : [];
+        if (!catalogs.length) {
+            const empty = document.createElement('p');
+            empty.className = 'description';
+            empty.textContent = 'No approved catalogs yet.';
+            catalogsContainer.appendChild(empty);
+            return;
+        }
+        catalogs.forEach(catalog => {
+            const card = document.createElement('div');
+            card.className = 'marketplace-catalog-card';
+            const summary = document.createElement('div');
+            summary.textContent = `${catalog.sourceName} · schema ${catalog.schemaVersion} · ${catalog.promptCount} prompts · ${catalog.duplicateCount} duplicates`;
+            const provenance = document.createElement('small');
+            provenance.textContent = `${catalog.sourceUrl} · updated ${catalog.updatedAt || 'not supplied'} · fetched ${catalog.fetchedAt || 'unknown'}`;
+            const actions = document.createElement('div');
+            actions.className = 'button-group';
+            const pinBtn = document.createElement('button');
+            pinBtn.type = 'button';
+            pinBtn.textContent = catalog.pinned ? 'Unpin' : 'Pin';
+            pinBtn.addEventListener('click', () => { toggleMarketplaceCatalogPinned(catalog.id); saveSettings().then(renderCatalogs); });
+            const refreshBtn = document.createElement('button');
+            refreshBtn.type = 'button';
+            refreshBtn.textContent = 'Refresh';
+            refreshBtn.addEventListener('click', () => importMarketplaceCatalog(catalog.sourceUrl).then(renderCatalogs).catch(error => showToast(error.message, 3500, 'error')));
+            const exportBtn = document.createElement('button');
+            exportBtn.type = 'button';
+            exportBtn.textContent = 'Export';
+            exportBtn.addEventListener('click', () => downloadJson(`${catalog.sourceName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-catalog.json`, createMarketplaceCatalogExport(catalog)));
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.textContent = 'Remove';
+            removeBtn.addEventListener('click', () => { removeMarketplaceCatalog(catalog.id); saveSettings().then(renderCatalogs); });
+            actions.append(pinBtn, refreshBtn, exportBtn, removeBtn);
+            card.append(summary, provenance, actions);
+            catalogsContainer.appendChild(card);
+        });
+    };
+    const catalogsSection = createSettingRow('marketplace-catalogs', 'Approved Catalogs', 'Pinned catalogs retain provenance and can be refreshed, removed, or exported with their source metadata.', catalogsContainer);
+    panes.ai.appendChild(catalogsSection);
+    renderCatalogs();
 
     // --- Data Pane ---
     const importExportBtn = document.createElement('button');
