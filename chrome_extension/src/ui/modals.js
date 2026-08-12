@@ -1,8 +1,8 @@
 // /src/ui/modals.js
 
-import { state, saveSettings, addHistoryEntry } from '../state.js';
+import { state, saveSettings, addHistoryEntry, savePromptRollbackSnapshot } from '../state.js';
 import { icons } from '../icons.js';
-import { createButtonWithIcon, showToast } from '../utils.js';
+import { createButtonWithIcon, showToast, showDecisionDialog } from '../utils.js';
 import { ensurePromptIDs, renderAllPrompts, savePrompts } from '../features/prompts.js';
 import { updateLockIcon } from './mainPanel.js';
 import { callGeminiAPI } from '../features/api.js';
@@ -157,8 +157,14 @@ export function showVersionHistory(promptData) {
         textSpan.textContent = entry.text;
         const restoreBtn = createButtonWithIcon('Restore', null);
         restoreBtn.style.flexShrink = '0';
-        restoreBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to restore this version? The current text will be added to history.')) {
+        restoreBtn.addEventListener('click', async () => {
+            const shouldRestore = await showDecisionDialog({
+                title: 'Restore prompt version?',
+                message: 'Restore this version? The current text will be added to history first.',
+                confirmLabel: 'Restore'
+            });
+            if (shouldRestore) {
+                await savePromptRollbackSnapshot('version-restore');
                 addHistoryEntry(promptData.id, promptData.text);
                 promptData.text = entry.text;
                 savePrompts().then(() => {

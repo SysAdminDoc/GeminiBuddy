@@ -1,7 +1,7 @@
 // /src/state.js
 
 import { GM_getValue, GM_setValue } from './GM_wrappers.js';
-import { defaultSettings, GM_SETTINGS_KEY, GM_HISTORY_KEY } from './config.js';
+import { defaultSettings, GM_SETTINGS_KEY, GM_HISTORY_KEY, GM_ROLLBACK_KEY } from './config.js';
 import { showToast } from './utils.js';
 
 export const state = {
@@ -60,6 +60,16 @@ export async function loadHistory() {
 
 export async function saveHistory() {
     await GM_setValue(GM_HISTORY_KEY, state.promptHistory);
+}
+
+export async function savePromptRollbackSnapshot(reason) {
+    await GM_setValue(GM_ROLLBACK_KEY, {
+        version: 1,
+        reason,
+        timestamp: Date.now(),
+        prompts: JSON.parse(JSON.stringify(state.currentPrompts)),
+        history: JSON.parse(JSON.stringify(state.promptHistory))
+    });
 }
 
 export function addHistoryEntry(promptId, oldText) {

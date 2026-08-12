@@ -4,6 +4,7 @@ export const DEFAULT_PROMPTS_URL = "https://raw.githubusercontent.com/SysAdminDo
 export const GM_PROMPTS_KEY = 'gemini_custom_prompts_v6';
 export const GM_SETTINGS_KEY = 'gemini_panel_settings_v25';
 export const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
+export const GM_ROLLBACK_KEY = 'gemini_prompt_rollback_v1';
 export const FULL_WIDTH_STYLE_ID = 'gemini-panel-full-width-style';
 
 export const FULL_WIDTH_CSS = `

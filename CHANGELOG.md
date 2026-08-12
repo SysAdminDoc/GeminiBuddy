@@ -6,6 +6,7 @@ All notable changes to GeminiBuddy will be documented in this file.
 
 - Repaired MV3 options storage schema drift with grouped prompt handling, chunk-safe settings migration, and shared storage keys.
 - Limited remote access to built-in GitHub/Google origins, with explicit HTTPS origin allowlists and optional MV3 host permissions for custom imports.
+- Replaced native confirmation and alert dialogs with themed, keyboard-dismissible flows and automatic rollback snapshots for destructive prompt changes.
 
 ## [v53.0.0] - 2026-06-27
 

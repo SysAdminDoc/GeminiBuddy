@@ -1,10 +1,10 @@
 // /src/features/prompts.js
 
-import { state, saveSettings, saveHistory, addHistoryEntry } from '../state.js';
+import { state, saveSettings, saveHistory, addHistoryEntry, savePromptRollbackSnapshot } from '../state.js';
 import { GM_PROMPTS_KEY, GM_SETTINGS_KEY } from '../config.js';
 import { GM_getValue, GM_setValue } from '../GM_wrappers.js';
 import { icons } from '../icons.js';
-import { showToast, capitalizeFirstLetter } from '../utils.js';
+import { showToast, capitalizeFirstLetter, showDecisionDialog } from '../utils.js';
 import { handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd, handleCategoryDragStart, handleCategoryDragOver, handleCategoryDragLeave, handleCategoryDrop, handleCategoryDragEnd } from './dragDrop.js';
 import { fetchDefaultPrompts } from './api.js';
 import { updateHandleHeight, sendPromptToGemini, renderMiniPanel } from '../ui/mainPanel.js';
@@ -31,7 +31,11 @@ export async function loadAndDisplayPrompts(isSync = false) {
         } catch (e) {
             console.log(e.message);
             state.currentPrompts = {};
-            if (confirm("Welcome to the Gemini Prompt Panel! Would you like to import the default list of prompts to get started?")) {
+            if (await showDecisionDialog({
+                title: 'Load default prompts?',
+                message: 'Welcome to GeminiBuddy. Load the default prompt list to get started?',
+                confirmLabel: 'Load defaults'
+            })) {
                 await fetchDefaultPrompts();
             }
         }
@@ -285,8 +289,15 @@ export function addPromptButtonToPanel(promptData, container, categoryName, isMi
         });
         const deleteBtn = document.createElement('button');
         deleteBtn.title = "Delete"; deleteBtn.appendChild(icons.trash.cloneNode(true));
-        deleteBtn.addEventListener('click', () => {
-            if (confirm(`Are you sure you want to delete the prompt "${promptData.name}"? This will also delete its version history.`)) {
+        deleteBtn.addEventListener('click', async () => {
+            const shouldDelete = await showDecisionDialog({
+                title: 'Delete prompt?',
+                message: `Delete "${promptData.name}" and its version history? A rollback snapshot will be saved first.`,
+                confirmLabel: 'Delete',
+                destructive: true
+            });
+            if (shouldDelete) {
+                await savePromptRollbackSnapshot('prompt-delete');
                 Object.keys(state.currentPrompts).forEach(catName => {
                     state.currentPrompts[catName] = state.currentPrompts[catName].filter(p => p.id !== promptData.id);
                     if (state.currentPrompts[catName].length === 0 && catName !== "Favorites") {

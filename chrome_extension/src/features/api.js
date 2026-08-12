@@ -1,10 +1,10 @@
 // /src/features/api.js
 
 import { GM_xmlhttpRequest } from '../GM_wrappers.js';
-import { state, saveSettings } from '../state.js';
+import { state, saveSettings, savePromptRollbackSnapshot } from '../state.js';
 import { savePrompts, ensurePromptIDs, loadAndDisplayPrompts } from './prompts.js';
 import { DEFAULT_PROMPTS_URL } from '../config.js';
-import { showToast } from '../utils.js';
+import { showToast, showDecisionDialog } from '../utils.js';
 
 export function fetchDefaultPrompts() {
     return new Promise((resolve) => {
@@ -55,14 +55,20 @@ export async function syncFromGist(isManual = false) {
         GM_xmlhttpRequest({
             method: "GET",
             url: `https://api.github.com/gists/${gistId}`,
-            onload: function(response) {
+            onload: async function(response) {
                 try {
                     const gistData = JSON.parse(response.responseText);
                     const file = Object.values(gistData.files)[0];
                     if (file && file.content) {
                         const newPrompts = JSON.parse(file.content);
-                        const doSync = isManual ? confirm("Gist data found. Replace all current prompts with the synced data? This cannot be undone.") : true;
+                        const doSync = isManual ? await showDecisionDialog({
+                            title: 'Replace local prompts?',
+                            message: 'Gist data is ready. Replace all local prompts? A rollback snapshot will be saved first.',
+                            confirmLabel: 'Replace prompts',
+                            destructive: true
+                        }) : true;
                         if (doSync) {
+                            await savePromptRollbackSnapshot('gist-replace');
                             state.currentPrompts = newPrompts;
                             savePrompts();
                             loadAndDisplayPrompts(true);

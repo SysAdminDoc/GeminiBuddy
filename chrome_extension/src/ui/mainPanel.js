@@ -3,7 +3,7 @@
 import { state, saveSettings } from '../state.js';
 import { icons } from '../icons.js';
 import { GM_SETTINGS_KEY } from '../config.js';
-import { createButtonWithIcon, showToast } from '../utils.js';
+import { createButtonWithIcon, showToast, showFatalErrorDialog } from '../utils.js';
 import { loadAndDisplayPrompts, renderAllPrompts, createCategory, handleSearch, savePrompts } from '../features/prompts.js';
 import { syncFromGist } from '../features/api.js';
 import { buildPromptFormModal, buildImportExportModal, buildAIEnhancerModal, buildAnalyticsModal, buildVersionHistoryModal, showPromptForm } from './modals.js';
@@ -324,6 +324,6 @@ export async function buildMainUI() {
 
     } catch (error) {
         console.error("FATAL ERROR during panel creation:", error);
-        alert("Gemini Prompt Panel failed to load. Check the browser console (F12) for a 'FATAL ERROR' message and report it.");
+        showFatalErrorDialog(error);
     }
 }

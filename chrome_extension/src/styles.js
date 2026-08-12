@@ -61,6 +61,7 @@ export const cssStyles = `
     .gemini-prompt-panel-button { border: 1px solid; color: white; padding: var(--btn-padding); border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: calc(var(--base-font-size) - 1px); font-weight: 500; cursor: pointer; transition: all .2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
     .gemini-prompt-panel-button:hover { filter: brightness(1.1); transform: translateY(-1px); }
     .gemini-prompt-panel-button:disabled { cursor: not-allowed; filter: brightness(0.6); }
+    .gemini-prompt-panel-button.error { background: linear-gradient(to bottom, #dc3545, #c82333); border-color: #a71d2a; }
     .copy-btn { background: linear-gradient(to bottom, var(--btn-green-grad-start), var(--btn-green-grad-end)); border-color: var(--btn-green-border); }
     .prompt-group-container { display: flex; flex-direction: column; overflow-y: auto; padding-right: 5px; margin-right: -5px; flex-grow: 1; min-height: 0; }
     /* Condensed Mode */

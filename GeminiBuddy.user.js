@@ -62,6 +62,7 @@
     const GM_SETTINGS_KEY = 'gemini_panel_settings_v25';
     const GM_LEGACY_SETTINGS_KEYS = ['gemini_panel_settings_v24'];
     const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
+    const GM_ROLLBACK_KEY = 'gemini_prompt_rollback_v1';
     const GM_PENDING_GEM_PROMPT_KEY = 'gemini_pending_gem_prompt_v1';
     const FULL_WIDTH_STYLE_ID = 'gemini-panel-full-width-style';
     const BUILTIN_REMOTE_ORIGINS = [
@@ -200,6 +201,16 @@
         GM_setValue(GM_PROMPTS_KEY, JSON.stringify(currentPrompts));
     }
 
+    async function savePromptRollbackSnapshot(reason) {
+        await GM_setValue(GM_ROLLBACK_KEY, {
+            version: 1,
+            reason,
+            timestamp: Date.now(),
+            prompts: JSON.parse(JSON.stringify(currentPrompts)),
+            history: JSON.parse(JSON.stringify(promptHistory))
+        });
+    }
+
     function ensurePromptIDs(prompts) {
         Object.values(prompts).flat().forEach((p, i) => {
             p.id = p.id || `prompt-${Date.now()}-${i}`;
@@ -299,14 +310,20 @@
                 method: "GET",
                 url: `https://api.github.com/gists/${gistId}`,
                 headers: getGistHeaders(true),
-                onload: function(response) {
+                onload: async function(response) {
                     try {
                         const gistData = JSON.parse(response.responseText);
                         const file = Object.values(gistData.files)[0];
                         if (file && file.content) {
                             const newPrompts = JSON.parse(file.content);
-                            const doSync = isManual ? confirm("Gist data found. Replace all current prompts with the synced data? This cannot be undone.") : true;
+                            const doSync = isManual ? await showDecisionDialog({
+                                title: 'Replace local prompts?',
+                                message: 'Gist data is ready. Replace all local prompts? A rollback snapshot will be saved first.',
+                                confirmLabel: 'Replace prompts',
+                                destructive: true
+                            }) : true;
                             if (doSync) {
+                                await savePromptRollbackSnapshot('gist-replace');
                                 currentPrompts = newPrompts;
                                 savePrompts();
                                 if (isManual) showToast("Sync successful!", 2000, 'success');
@@ -513,6 +530,7 @@
         .gemini-prompt-panel-button { border: 1px solid; color: white; padding: var(--btn-padding); border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: calc(var(--base-font-size) - 1px); font-weight: 500; cursor: pointer; transition: all .2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
         .gemini-prompt-panel-button:hover { filter: brightness(1.1); transform: translateY(-1px); }
         .gemini-prompt-panel-button:disabled { cursor: not-allowed; filter: brightness(0.6); }
+        .gemini-prompt-panel-button.error { background: linear-gradient(to bottom, #dc3545, #c82333); border-color: #a71d2a; }
         .copy-btn { background: linear-gradient(to bottom, var(--btn-green-grad-start), var(--btn-green-grad-end)); border-color: var(--btn-green-border); }
         .prompt-group-container { display: flex; flex-direction: column; overflow-y: auto; padding-right: 5px; margin-right: -5px; flex-grow: 1; min-height: 0; }
         /* Condensed Mode */
@@ -971,6 +989,98 @@
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), duration);
     }
+
+    function showDecisionDialog({ title, message, confirmLabel = 'Continue', cancelLabel = 'Cancel', destructive = false }) {
+        return new Promise(resolve => {
+            const previousFocus = document.activeElement;
+            const overlay = document.createElement('div');
+            overlay.id = 'geminibuddy-decision-dialog';
+            overlay.className = 'modal-overlay';
+            overlay.style.display = 'flex';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-labelledby', 'geminibuddy-decision-title');
+
+            const content = document.createElement('div');
+            content.className = 'modal-content';
+            const header = document.createElement('div');
+            header.className = 'modal-header';
+            const heading = document.createElement('h2');
+            heading.className = 'modal-title';
+            heading.id = 'geminibuddy-decision-title';
+            heading.textContent = title;
+            header.appendChild(heading);
+            const body = document.createElement('div');
+            body.className = 'modal-body';
+            const copy = document.createElement('p');
+            copy.textContent = message;
+            body.appendChild(copy);
+            const actions = document.createElement('div');
+            actions.className = 'button-group';
+            const cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.className = 'gemini-prompt-panel-button';
+            cancelButton.textContent = cancelLabel;
+            const confirmButton = document.createElement('button');
+            confirmButton.type = 'button';
+            confirmButton.className = 'gemini-prompt-panel-button copy-btn';
+            if (destructive) confirmButton.classList.add('error');
+            confirmButton.textContent = confirmLabel;
+            actions.append(cancelButton, confirmButton);
+            content.append(header, body, actions);
+            overlay.appendChild(content);
+
+            let settled = false;
+            const finish = result => {
+                if (settled) return;
+                settled = true;
+                document.removeEventListener('keydown', onKeyDown);
+                overlay.remove();
+                if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
+                resolve(result);
+            };
+            const onKeyDown = event => {
+                if (event.key === 'Escape') finish(false);
+            };
+            cancelButton.addEventListener('click', () => finish(false));
+            confirmButton.addEventListener('click', () => finish(true));
+            overlay.addEventListener('click', event => {
+                if (event.target === overlay) finish(false);
+            });
+            document.addEventListener('keydown', onKeyDown);
+            document.body.appendChild(overlay);
+            confirmButton.focus();
+        });
+    }
+
+    function showFatalLoadDialog(error) {
+        const overlay = document.createElement('div');
+        overlay.id = 'geminibuddy-fatal-dialog';
+        overlay.className = 'modal-overlay';
+        overlay.style.display = 'flex';
+        overlay.setAttribute('role', 'alertdialog');
+        overlay.setAttribute('aria-modal', 'true');
+        const content = document.createElement('div');
+        content.className = 'modal-content';
+        const heading = document.createElement('h2');
+        heading.className = 'modal-title';
+        heading.textContent = 'GeminiBuddy could not load';
+        const body = document.createElement('div');
+        body.className = 'modal-body';
+        const message = document.createElement('p');
+        message.textContent = 'The prompt panel hit an error. Check the browser console for details, then reload Gemini to try again.';
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'gemini-prompt-panel-button';
+        closeButton.textContent = 'Dismiss';
+        body.append(message, closeButton);
+        content.append(heading, body);
+        overlay.appendChild(content);
+        closeButton.addEventListener('click', () => overlay.remove());
+        document.body.appendChild(overlay);
+        closeButton.focus();
+        if (error) console.error('GeminiBuddy fatal dialog:', error);
+    }
     function showCountdownToast(message, duration = 5000) {
         toast.className = 'toast-notification success show';
         let seconds = Math.floor(duration / 1000);
@@ -1165,7 +1275,11 @@
             } catch (e) {
                 console.log(e.message);
                 currentPrompts = {};
-                if (confirm("Welcome to the Gemini Prompt Panel! Would you like to import the default list of prompts to get started?")) {
+                if (await showDecisionDialog({
+                    title: 'Load default prompts?',
+                    message: 'Welcome to GeminiBuddy. Load the default prompt list to get started?',
+                    confirmLabel: 'Load defaults'
+                })) {
                     await fetchDefaultPrompts();
                 }
             }
@@ -1286,8 +1400,15 @@
             });
             const deleteBtn = document.createElement('button');
             deleteBtn.title = "Delete"; deleteBtn.appendChild(icons.trash.cloneNode(true));
-            deleteBtn.addEventListener('click', () => {
-                if (confirm(`Are you sure you want to delete the prompt "${promptData.name}"? This will also delete its version history.`)) {
+            deleteBtn.addEventListener('click', async () => {
+                const shouldDelete = await showDecisionDialog({
+                    title: 'Delete prompt?',
+                    message: `Delete "${promptData.name}" and its version history? A rollback snapshot will be saved first.`,
+                    confirmLabel: 'Delete',
+                    destructive: true
+                });
+                if (shouldDelete) {
+                    await savePromptRollbackSnapshot('prompt-delete');
                     Object.keys(currentPrompts).forEach(catName => {
                         currentPrompts[catName] = currentPrompts[catName].filter(p => p.id !== promptData.id);
                         if (currentPrompts[catName].length === 0 && catName !== "Favorites") {
@@ -2280,8 +2401,14 @@
             textSpan.textContent = entry.text;
             const restoreBtn = createButtonWithIcon('Restore', null);
             restoreBtn.style.flexShrink = '0';
-            restoreBtn.addEventListener('click', () => {
-                if (confirm('Are you sure you want to restore this version? The current text will be added to history.')) {
+            restoreBtn.addEventListener('click', async () => {
+                const shouldRestore = await showDecisionDialog({
+                    title: 'Restore prompt version?',
+                    message: 'Restore this version? The current text will be added to history first.',
+                    confirmLabel: 'Restore'
+                });
+                if (shouldRestore) {
+                    await savePromptRollbackSnapshot('version-restore');
                     addHistoryEntry(promptData.id, promptData.text);
                     promptData.text = entry.text;
                     savePrompts().then(() => {
@@ -2557,7 +2684,7 @@
             updateNavigator();
         } catch (error) {
             console.error("FATAL ERROR during panel creation:", error);
-            alert("Gemini Prompt Panel failed to load. Check the browser console (F12) for a 'FATAL ERROR' message and report it.");
+            showFatalLoadDialog(error);
         }
     }
 
