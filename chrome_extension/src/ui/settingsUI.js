@@ -1,6 +1,6 @@
 // /src/ui/settingsUI.js
 
-import { state, saveSettings } from '../state.js';
+import { state, saveSettings, saveSecrets, clearSecret } from '../state.js';
 import { icons } from '../icons.js';
 import { capitalizeFirstLetter } from '../utils.js';
 import { presetThemes, FULL_WIDTH_STYLE_ID, FULL_WIDTH_CSS } from '../config.js';
@@ -299,13 +299,24 @@ function populateSettingsPanes() {
     const apiKeyInput = document.createElement('input');
     apiKeyInput.type = 'password';
     apiKeyInput.id = 'setting-api-key';
-    apiKeyInput.value = state.settings.geminiAPIKey;
+    apiKeyInput.value = state.secrets.geminiAPIKey;
     apiKeyInput.placeholder = "Enter your Google AI API key";
     apiKeyInput.addEventListener('change', e => {
-        state.settings.geminiAPIKey = e.target.value.trim();
-        saveSettings();
+        state.secrets.geminiAPIKey = e.target.value.trim();
+        saveSecrets();
     });
-    panes.ai.appendChild(createSettingRow('setting-api-key', 'Google AI API Key', 'Required for the AI Prompt Enhancer feature. Your key is stored locally.', apiKeyInput));
+    const clearApiKeyBtn = document.createElement('button');
+    clearApiKeyBtn.type = 'button';
+    clearApiKeyBtn.className = 'settings-styled-button';
+    clearApiKeyBtn.textContent = 'Clear';
+    clearApiKeyBtn.addEventListener('click', async () => {
+        await clearSecret('geminiAPIKey');
+        apiKeyInput.value = '';
+    });
+    const apiKeyControls = document.createElement('div');
+    apiKeyControls.className = 'input-with-button';
+    apiKeyControls.append(apiKeyInput, clearApiKeyBtn);
+    panes.ai.appendChild(createSettingRow('setting-api-key', 'Google AI API Key', 'Stored in local-only secret storage and never synced with settings.', apiKeyControls));
 
     const gistUrlInput = document.createElement('input');
     gistUrlInput.type = 'url';

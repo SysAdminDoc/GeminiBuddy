@@ -94,10 +94,14 @@ export async function syncFromGist(isManual = false) {
 }
 
 export async function callGeminiAPI(prompt) {
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${state.settings.geminiAPIKey}`;
+    if (!state.secrets.geminiAPIKey) throw new Error('Google AI API key is not configured.');
+    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
     const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': state.secrets.geminiAPIKey
+        },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
     if (!response.ok) {

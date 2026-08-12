@@ -2,6 +2,7 @@
   'use strict';
 
   const storage = chrome.storage.sync || chrome.storage.local;
+  const secretStorage = chrome.storage.local;
   const CHUNK_SIZE = 7000;
 
   function chunkKey(key, index) {
@@ -37,6 +38,45 @@
   function storageRemove(keys) {
     return new Promise((resolve, reject) => {
       storage.remove(keys, () => {
+        const error = chrome.runtime.lastError;
+        if (error) {
+          reject(new Error(error.message));
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+
+  function secretStorageGet(key, defaultValue) {
+    return new Promise((resolve, reject) => {
+      secretStorage.get([key], result => {
+        const error = chrome.runtime.lastError;
+        if (error) {
+          reject(new Error(error.message));
+          return;
+        }
+        resolve(Object.prototype.hasOwnProperty.call(result || {}, key) ? result[key] : defaultValue);
+      });
+    });
+  }
+
+  function secretStorageSet(key, value) {
+    return new Promise((resolve, reject) => {
+      secretStorage.set({ [key]: value }, () => {
+        const error = chrome.runtime.lastError;
+        if (error) {
+          reject(new Error(error.message));
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+
+  function secretStorageRemove(key) {
+    return new Promise((resolve, reject) => {
+      secretStorage.remove([key], () => {
         const error = chrome.runtime.lastError;
         if (error) {
           reject(new Error(error.message));
@@ -111,6 +151,25 @@
   globalThis.GM_deleteValue = function(key) {
     return storageRemove(key).catch(error => {
       console.warn(`GeminiBuddy storage delete failed for ${key}:`, error);
+    });
+  };
+
+  globalThis.GM_getLocalValue = function(key, defaultValue) {
+    return secretStorageGet(key, defaultValue).catch(error => {
+      console.warn(`GeminiBuddy local secret read failed for ${key}:`, error);
+      return defaultValue;
+    });
+  };
+
+  globalThis.GM_setLocalValue = function(key, value) {
+    return secretStorageSet(key, value).catch(error => {
+      console.warn(`GeminiBuddy local secret write failed for ${key}:`, error);
+    });
+  };
+
+  globalThis.GM_deleteLocalValue = function(key) {
+    return secretStorageRemove(key).catch(error => {
+      console.warn(`GeminiBuddy local secret delete failed for ${key}:`, error);
     });
   };
 

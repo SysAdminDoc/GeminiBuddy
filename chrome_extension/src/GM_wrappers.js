@@ -78,3 +78,29 @@ export const GM_xmlhttpRequest = (details) => {
     }
   });
 };
+
+export const GM_setLocalValue = async (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error("Error saving local secret", e);
+  }
+};
+
+export const GM_getLocalValue = async (key, defaultValue) => {
+  try {
+    const value = localStorage.getItem(key);
+    return value === null ? defaultValue : JSON.parse(value);
+  } catch (e) {
+    console.error("Error reading local secret", e);
+    return defaultValue;
+  }
+};
+
+export const GM_deleteLocalValue = async (key) => {
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {
+    console.error("Error deleting local secret", e);
+  }
+};

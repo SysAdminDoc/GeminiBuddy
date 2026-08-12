@@ -5,6 +5,7 @@ export const GM_PROMPTS_KEY = 'gemini_custom_prompts_v6';
 export const GM_SETTINGS_KEY = 'gemini_panel_settings_v25';
 export const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
 export const GM_ROLLBACK_KEY = 'gemini_prompt_rollback_v1';
+export const GM_SECRETS_KEY = 'gemini_local_secrets_v1';
 export const FULL_WIDTH_STYLE_ID = 'gemini-panel-full-width-style';
 
 export const FULL_WIDTH_CSS = `
@@ -32,7 +33,7 @@ export const defaultSettings = {
     themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
     fontFamily: 'Verdana, sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
     collapsedCategories: [], favorites: [], groupOrder: [], tagOrder: [], initiallyCollapsed: false, copyButtonOrderSwapped: false,
-    showTags: true, showPins: true, enableAIenhancer: true, geminiAPIKey: '', gistURL: '',
+    showTags: true, showPins: true, enableAIenhancer: true, gistURL: '',
     allowedImportOrigins: [],
     enableMiniMode: true, groupByTags: true, autoCopyCodeOnCompletion: true,
     settingsTheme: 'dark',

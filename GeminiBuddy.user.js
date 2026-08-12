@@ -63,6 +63,7 @@
     const GM_LEGACY_SETTINGS_KEYS = ['gemini_panel_settings_v24'];
     const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
     const GM_ROLLBACK_KEY = 'gemini_prompt_rollback_v1';
+    const GM_SECRETS_KEY = 'gemini_local_secrets_v1';
     const GM_PENDING_GEM_PROMPT_KEY = 'gemini_pending_gem_prompt_v1';
     const FULL_WIDTH_STYLE_ID = 'gemini-panel-full-width-style';
     const BUILTIN_REMOTE_ORIGINS = [
@@ -78,13 +79,14 @@
     let currentPanelView = 'chat'; // New state for panel mode: 'chat' or 'veo'
     let promptHistory = {};
     let settings = {};
+    let secrets = { geminiAPIKey: '', gistToken: '' };
     let lastFetchedUrl = null;
 
     const defaultSettings = {
         themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
         fontFamily: 'Verdana, sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
         collapsedCategories: [], favorites: [], groupOrder: [], tagOrder: [], initiallyCollapsed: false, copyButtonOrderSwapped: false,
-        showTags: true, showPins: true, enableAIenhancer: true, geminiAPIKey: '', gistURL: '', gistToken: '', gistFileName: 'gemini-prompts.json', marketplaceURL: '', allowedImportOrigins: [],
+        showTags: true, showPins: true, enableAIenhancer: true, gistURL: '', gistFileName: 'gemini-prompts.json', marketplaceURL: '', allowedImportOrigins: [],
         enableMiniMode: true, groupByTags: true, autoCopyCodeOnCompletion: true,
         groupColors: {},
         colors: {
@@ -126,6 +128,50 @@
     ];
 
     // --- SETTINGS & PROMPT FUNCTIONS ---
+    async function loadLocalSecrets() {
+        if (typeof GM_getLocalValue === 'function') {
+            return (await GM_getLocalValue(GM_SECRETS_KEY, {})) || {};
+        }
+        try {
+            const raw = window.localStorage?.getItem(GM_SECRETS_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (_error) {
+            return {};
+        }
+    }
+
+    async function saveLocalSecrets() {
+        if (typeof GM_setLocalValue === 'function') {
+            await GM_setLocalValue(GM_SECRETS_KEY, secrets);
+            return;
+        }
+        try {
+            window.localStorage?.setItem(GM_SECRETS_KEY, JSON.stringify(secrets));
+        } catch (_error) {
+            console.warn('GeminiBuddy local secret storage is unavailable.');
+        }
+    }
+
+    async function clearLocalSecrets() {
+        if (typeof GM_deleteLocalValue === 'function') {
+            await GM_deleteLocalValue(GM_SECRETS_KEY);
+            return;
+        }
+        try {
+            window.localStorage?.removeItem(GM_SECRETS_KEY);
+        } catch (_error) {
+            console.warn('GeminiBuddy local secret storage is unavailable.');
+        }
+    }
+
+    async function saveSecret(name, value) {
+        secrets[name] = String(value || '').trim();
+        if (!secrets.geminiAPIKey && !secrets.gistToken) {
+            await clearLocalSecrets();
+        } else {
+            await saveLocalSecrets();
+        }
+    }
     async function loadSettings() {
         let loadedSettings = await GM_getValue(GM_SETTINGS_KEY, null);
         if (!loadedSettings || typeof loadedSettings !== 'object' || Array.isArray(loadedSettings)) {
@@ -137,9 +183,30 @@
                     await GM_deleteValue(GM_LEGACY_SETTINGS_KEYS[0]);
                 }
             } else {
-                loadedSettings = defaultSettings;
+                loadedSettings = { ...defaultSettings };
             }
         }
+        loadedSettings = { ...loadedSettings };
+        const legacySecrets = {
+            geminiAPIKey: loadedSettings.geminiAPIKey || '',
+            gistToken: loadedSettings.gistToken || ''
+        };
+        delete loadedSettings.geminiAPIKey;
+        delete loadedSettings.gistToken;
+        secrets = {
+            geminiAPIKey: '',
+            gistToken: '',
+            ...(await loadLocalSecrets())
+        };
+        let migratedSecret = false;
+        Object.entries(legacySecrets).forEach(([name, value]) => {
+            if (!secrets[name] && value) {
+                secrets[name] = value;
+                migratedSecret = true;
+            }
+        });
+        if (migratedSecret) await saveLocalSecrets();
+        if (legacySecrets.geminiAPIKey || legacySecrets.gistToken) await GM_setValue(GM_SETTINGS_KEY, loadedSettings);
         settings = { ...defaultSettings, ...loadedSettings };
         settings.colors = { ...defaultSettings.colors, ...(settings.colors || {}) };
         settings.groupColors = settings.groupColors || {};
@@ -287,8 +354,8 @@
 
     function getGistHeaders(includeAuth = false) {
         const headers = { 'Accept': 'application/vnd.github+json' };
-        if (includeAuth && settings.gistToken) {
-            headers.Authorization = `Bearer ${settings.gistToken}`;
+        if (includeAuth && secrets.gistToken) {
+            headers.Authorization = `Bearer ${secrets.gistToken}`;
         }
         return headers;
     }
@@ -1880,9 +1947,19 @@
         ));
         const apiKeyInput = document.createElement('input');
         apiKeyInput.type = 'password'; apiKeyInput.id = 'gemini-api-key-input'; apiKeyInput.placeholder = 'Enter your API key';
-        apiKeyInput.value = settings.geminiAPIKey;
-        apiKeyInput.addEventListener('change', (e) => { settings.geminiAPIKey = e.target.value; saveSettings(); });
-        aiContent.appendChild(createSettingRow('gemini-api-key-input', 'Google AI API Key', 'Required for the AI Prompt Enhancer feature.', apiKeyInput));
+        apiKeyInput.value = secrets.geminiAPIKey;
+        apiKeyInput.addEventListener('change', (e) => saveSecret('geminiAPIKey', e.target.value));
+        const clearApiKeyBtn = createButtonWithIcon('Clear', null);
+        clearApiKeyBtn.type = 'button';
+        clearApiKeyBtn.addEventListener('click', async () => {
+            await saveSecret('geminiAPIKey', '');
+            apiKeyInput.value = '';
+            showToast('Google AI API key cleared.', 2200, 'success');
+        });
+        const apiKeyControls = document.createElement('div');
+        apiKeyControls.className = 'input-with-button';
+        apiKeyControls.append(apiKeyInput, clearApiKeyBtn);
+        aiContent.appendChild(createSettingRow('gemini-api-key-input', 'Google AI API Key', 'Stored in local-only secret storage and never synced with settings.', apiKeyControls));
 
         // Data Section
         const dataContent = createAccordionSection('Data & Sync', 'settings-data');
@@ -1900,9 +1977,19 @@
         gistTokenInput.type = 'password';
         gistTokenInput.id = 'gist-token-input';
         gistTokenInput.placeholder = 'GitHub token with gist scope';
-        gistTokenInput.value = settings.gistToken || '';
-        gistTokenInput.addEventListener('change', (e) => { settings.gistToken = e.target.value.trim(); saveSettings(); });
-        dataContent.appendChild(createSettingRow('gist-token-input', 'GitHub Gist Token', 'Required only for pushing local prompts back to a Gist.', gistTokenInput));
+        gistTokenInput.value = secrets.gistToken;
+        gistTokenInput.addEventListener('change', (e) => saveSecret('gistToken', e.target.value));
+        const clearGistTokenBtn = createButtonWithIcon('Clear', null);
+        clearGistTokenBtn.type = 'button';
+        clearGistTokenBtn.addEventListener('click', async () => {
+            await saveSecret('gistToken', '');
+            gistTokenInput.value = '';
+            showToast('GitHub Gist token cleared.', 2200, 'success');
+        });
+        const gistTokenControls = document.createElement('div');
+        gistTokenControls.className = 'input-with-button';
+        gistTokenControls.append(gistTokenInput, clearGistTokenBtn);
+        dataContent.appendChild(createSettingRow('gist-token-input', 'GitHub Gist Token', 'Stored in local-only secret storage and used only for Gist writes.', gistTokenControls));
         const gistFileNameInput = document.createElement('input');
         gistFileNameInput.type = 'text';
         gistFileNameInput.id = 'gist-file-name-input';
@@ -2317,7 +2404,7 @@
         };
     }
     async function showAIEnhancer(promptData) {
-        if (!settings.geminiAPIKey) {
+        if (!secrets.geminiAPIKey) {
             showToast("Please set your Gemini API key in Settings.", 3000, 'error');
             return;
         }
@@ -3603,7 +3690,7 @@
             showToast("Please provide a Gist URL in settings.", 2500, 'error');
             return;
         }
-        if (!settings.gistToken) {
+        if (!secrets.gistToken) {
             showToast("A GitHub token is required to push to Gist.", 3000, 'error');
             return;
         }

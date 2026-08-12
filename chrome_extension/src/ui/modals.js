@@ -609,7 +609,7 @@ export function buildAIEnhancerModal() {
 }
 
 export async function showAIEnhancer(promptData) {
-    if (!state.settings.geminiAPIKey) {
+    if (!state.secrets.geminiAPIKey) {
         showToast("Please set your Gemini API key in Settings.", 3000, 'error');
         return;
     }

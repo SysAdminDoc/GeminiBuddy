@@ -1,7 +1,7 @@
 // /src/state.js
 
-import { GM_getValue, GM_setValue } from './GM_wrappers.js';
-import { defaultSettings, GM_SETTINGS_KEY, GM_HISTORY_KEY, GM_ROLLBACK_KEY } from './config.js';
+import { GM_getValue, GM_setValue, GM_getLocalValue, GM_setLocalValue, GM_deleteLocalValue } from './GM_wrappers.js';
+import { defaultSettings, GM_SETTINGS_KEY, GM_HISTORY_KEY, GM_ROLLBACK_KEY, GM_SECRETS_KEY } from './config.js';
 import { showToast } from './utils.js';
 
 export const state = {
@@ -33,6 +33,7 @@ export const state = {
     currentPrompts: {},
     promptHistory: {},
     settings: {},
+    secrets: { geminiAPIKey: '', gistToken: '' },
     isManuallyLocked: false,
     isFormActiveLock: false,
     lastFetchedUrl: null,
@@ -42,11 +43,45 @@ export const state = {
 
 export async function loadSettings() {
     let loadedSettings = await GM_getValue(GM_SETTINGS_KEY, defaultSettings);
+    loadedSettings = loadedSettings && typeof loadedSettings === 'object' && !Array.isArray(loadedSettings)
+        ? { ...loadedSettings }
+        : { ...defaultSettings };
+    const legacySecrets = {
+        geminiAPIKey: loadedSettings?.geminiAPIKey || '',
+        gistToken: loadedSettings?.gistToken || ''
+    };
+    delete loadedSettings.geminiAPIKey;
+    delete loadedSettings.gistToken;
     state.settings = { ...defaultSettings, ...loadedSettings };
     state.settings.colors = { ...defaultSettings.colors, ...(state.settings.colors || {}) };
     state.settings.groupColors = state.settings.groupColors || {};
     state.settings.groupOrder = state.settings.groupOrder || [];
     state.settings.tagOrder = state.settings.tagOrder || [];
+    state.secrets = {
+        geminiAPIKey: '',
+        gistToken: '',
+        ...(await GM_getLocalValue(GM_SECRETS_KEY, {}))
+    };
+    let migratedSecret = false;
+    for (const key of Object.keys(legacySecrets)) {
+        if (!state.secrets[key] && legacySecrets[key]) {
+            state.secrets[key] = legacySecrets[key];
+            migratedSecret = true;
+        }
+    }
+    if (migratedSecret) await GM_setLocalValue(GM_SECRETS_KEY, state.secrets);
+    if (legacySecrets.geminiAPIKey || legacySecrets.gistToken) await GM_setValue(GM_SETTINGS_KEY, state.settings);
+}
+
+export async function saveSecrets() {
+    await GM_setLocalValue(GM_SECRETS_KEY, state.secrets);
+}
+
+export async function clearSecret(key) {
+    state.secrets[key] = '';
+    await saveSecrets();
+    await GM_deleteLocalValue(GM_SECRETS_KEY);
+    if (state.secrets.geminiAPIKey || state.secrets.gistToken) await saveSecrets();
 }
 
 export async function saveSettings() {

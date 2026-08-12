@@ -163,6 +163,8 @@ Settings and prompts are stored in your browser's local storage using the follow
 
 Remote marketplace and JSON imports are limited to the built-in GitHub/Google sources by default. For another HTTPS catalog, add its origin to the **Allowed import origins** setting; the MV3 extension can alternatively request a one-time optional host permission from the browser.
 
+Google AI API keys and GitHub Gist tokens are stored separately in local-only secret storage. They are migrated out of older settings records, excluded from prompt/settings exports, and can be cleared from the settings UI.
+
 -----
 
 ## Screenshots
