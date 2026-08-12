@@ -3,6 +3,7 @@
   "version": "53.0.0",
   "private": true,
   "scripts": {
-    "build": "node build-extension.js"
+    "build": "node build-extension.js",
+    "smoke": "node ../tests/mv3-smoke.js"
   }
 }

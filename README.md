@@ -128,6 +128,7 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
       * Under "File", use "Choose File" to import the `GeminiBuddy.user.js` from your local clone.
 4.  **MV3 Extension Build:**
       * Run `node chrome_extension/build-extension.js`.
+      * Run `node tests/mv3-smoke.js` to load the unpacked build in a clean Chromium profile and exercise a mocked Gemini host. Set `GEMINIBUDDY_CHROME` to a Chromium executable when the system browser blocks unpacked-extension flags.
       * Load `chrome_extension/dist/geminibuddy-mv3` as an unpacked extension, or use the generated ZIP in `chrome_extension/dist`.
 
 -----
