@@ -29,7 +29,8 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    console.log('Gemini Prompt Panel Enhancer v53.0.0 loaded');
+    const PROJECT_VERSION = '53.0.0';
+    console.log(`Gemini Prompt Panel Enhancer v${PROJECT_VERSION} loaded`);
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -60,7 +61,12 @@
     const VEO_PROMPTS_URL = "https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/refs/heads/main/veoprompts/Google_Veo_3_Prompts.json";
     const GM_PROMPTS_KEY = 'gemini_custom_prompts_v6';
     const GM_SETTINGS_KEY = 'gemini_panel_settings_v25';
+    const GM_LEGACY_PROMPT_KEYS = ['gemini_custom_prompts_v5', 'gemini_custom_prompts_v2'];
     const GM_LEGACY_SETTINGS_KEYS = ['gemini_panel_settings_v24'];
+    const STORAGE_MIGRATIONS = Object.freeze([
+        Object.freeze({ currentKey: GM_PROMPTS_KEY, legacyKeys: GM_LEGACY_PROMPT_KEYS, kind: 'prompt-library' }),
+        Object.freeze({ currentKey: GM_SETTINGS_KEY, legacyKeys: GM_LEGACY_SETTINGS_KEYS, kind: 'settings' })
+    ]);
     const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
     const GM_ROLLBACK_KEY = 'gemini_prompt_rollback_v1';
     const GM_SECRETS_KEY = 'gemini_local_secrets_v1';
@@ -175,14 +181,18 @@
     async function loadSettings() {
         let loadedSettings = await GM_getValue(GM_SETTINGS_KEY, null);
         if (!loadedSettings || typeof loadedSettings !== 'object' || Array.isArray(loadedSettings)) {
-            const legacySettings = await GM_getValue(GM_LEGACY_SETTINGS_KEYS[0], null);
-            if (legacySettings && typeof legacySettings === 'object' && !Array.isArray(legacySettings)) {
-                loadedSettings = legacySettings;
-                await GM_setValue(GM_SETTINGS_KEY, loadedSettings);
-                if (typeof GM_deleteValue === 'function') {
-                    await GM_deleteValue(GM_LEGACY_SETTINGS_KEYS[0]);
+            for (const legacyKey of GM_LEGACY_SETTINGS_KEYS) {
+                const legacySettings = await GM_getValue(legacyKey, null);
+                if (legacySettings && typeof legacySettings === 'object' && !Array.isArray(legacySettings)) {
+                    loadedSettings = legacySettings;
+                    await GM_setValue(GM_SETTINGS_KEY, loadedSettings);
+                    if (typeof GM_deleteValue === 'function') {
+                        await GM_deleteValue(legacyKey);
+                    }
+                    break;
                 }
-            } else {
+            }
+            if (!loadedSettings || typeof loadedSettings !== 'object' || Array.isArray(loadedSettings)) {
                 loadedSettings = { ...defaultSettings };
             }
         }
@@ -1334,10 +1344,24 @@
     async function loadAndDisplayPrompts(isSync = false) {
         if (!isSync) {
             let raw = await GM_getValue(GM_PROMPTS_KEY);
+            let migratedPromptKey = '';
+            if (!raw) {
+                for (const legacyKey of GM_LEGACY_PROMPT_KEYS) {
+                    const legacyRaw = await GM_getValue(legacyKey, null);
+                    if (!legacyRaw) continue;
+                    raw = legacyRaw;
+                    migratedPromptKey = legacyKey;
+                    break;
+                }
+            }
             try {
                 let loadedPrompts = JSON.parse(raw);
                 if (typeof loadedPrompts === 'object' && loadedPrompts !== null && Object.keys(loadedPrompts).length > 0) {
                     currentPrompts = loadedPrompts;
+                    if (migratedPromptKey) {
+                        await GM_setValue(GM_PROMPTS_KEY, raw);
+                        if (typeof GM_deleteValue === 'function') await GM_deleteValue(migratedPromptKey);
+                    }
                 } else { throw new Error("No prompts stored, checking for first run."); }
             } catch (e) {
                 console.log(e.message);

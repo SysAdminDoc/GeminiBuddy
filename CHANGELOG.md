@@ -9,6 +9,7 @@ All notable changes to GeminiBuddy will be documented in this file.
 - Replaced native confirmation and alert dialogs with themed, keyboard-dismissible flows and automatic rollback snapshots for destructive prompt changes.
 - Moved Google AI and GitHub Gist credentials to local-only secret storage, added clear controls, and removed API keys from request URLs.
 - Added verified prompt backups with schema versions, SHA-256 manifests, dry-run import previews, rejected-entry reports, duplicate-ID repair, and rollback snapshots.
+- Added shared storage migration tables for legacy prompt/settings keys and a build/test guard for version and storage-key drift.
 
 ## [v53.0.0] - 2026-06-27
 

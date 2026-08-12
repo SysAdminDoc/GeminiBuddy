@@ -1,5 +1,6 @@
 const path = require('path');
 const WebpackUserscript = require('webpack-userscript');
+const packageInfo = require('./package.js');
 
 module.exports = {
   mode: 'production',
@@ -14,7 +15,7 @@ module.exports = {
       headers: {
         name: 'GeminiBuddy',
         namespace: 'https://github.com/SysAdminDoc/GeminiBuddy',
-        version: '53.0.0',
+        version: packageInfo.version,
         description: "CSP-Compliant in @grant none mode. Upgraded with a professional SaaS-style settings menu, UI refinements, and more.",
         author: 'Matthew Parker',
         match: 'https://gemini.google.com/*',

@@ -1,7 +1,7 @@
 // /src/state.js
 
 import { GM_getValue, GM_setValue, GM_getLocalValue, GM_setLocalValue, GM_deleteLocalValue } from './GM_wrappers.js';
-import { defaultSettings, GM_SETTINGS_KEY, GM_HISTORY_KEY, GM_ROLLBACK_KEY, GM_SECRETS_KEY } from './config.js';
+import { defaultSettings, GM_SETTINGS_KEY, GM_HISTORY_KEY, GM_ROLLBACK_KEY, GM_SECRETS_KEY, LEGACY_SETTINGS_KEYS } from './config.js';
 import { showToast } from './utils.js';
 
 export const state = {
@@ -43,6 +43,18 @@ export const state = {
 
 export async function loadSettings() {
     let loadedSettings = await GM_getValue(GM_SETTINGS_KEY, defaultSettings);
+    let migratedStorageKey = false;
+    if (!loadedSettings || typeof loadedSettings !== 'object' || Array.isArray(loadedSettings)) {
+        for (const legacyKey of LEGACY_SETTINGS_KEYS) {
+            const legacySettings = await GM_getValue(legacyKey, null);
+            if (!legacySettings || typeof legacySettings !== 'object' || Array.isArray(legacySettings)) continue;
+            loadedSettings = legacySettings;
+            await GM_setValue(GM_SETTINGS_KEY, loadedSettings);
+            localStorage.removeItem(legacyKey);
+            migratedStorageKey = true;
+            break;
+        }
+    }
     loadedSettings = loadedSettings && typeof loadedSettings === 'object' && !Array.isArray(loadedSettings)
         ? { ...loadedSettings }
         : { ...defaultSettings };
@@ -70,7 +82,7 @@ export async function loadSettings() {
         }
     }
     if (migratedSecret) await GM_setLocalValue(GM_SECRETS_KEY, state.secrets);
-    if (legacySecrets.geminiAPIKey || legacySecrets.gistToken) await GM_setValue(GM_SETTINGS_KEY, state.settings);
+    if (legacySecrets.geminiAPIKey || legacySecrets.gistToken || migratedStorageKey) await GM_setValue(GM_SETTINGS_KEY, state.settings);
 }
 
 export async function saveSecrets() {

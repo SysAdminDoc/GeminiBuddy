@@ -1,9 +1,16 @@
 // /src/config.js
 
 export const DEFAULT_PROMPTS_URL = "https://raw.githubusercontent.com/SysAdminDoc/Gemini-Prompt-Panel/refs/heads/main/Prompts/defaultpromptlist.json";
+export const PROJECT_VERSION = '53.0.0';
 export const GM_PROMPTS_KEY = 'gemini_custom_prompts_v6';
 export const GM_SETTINGS_KEY = 'gemini_panel_settings_v25';
 export const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
+export const LEGACY_PROMPT_KEYS = Object.freeze(['gemini_custom_prompts_v5', 'gemini_custom_prompts_v2']);
+export const LEGACY_SETTINGS_KEYS = Object.freeze(['gemini_panel_settings_v24']);
+export const STORAGE_MIGRATIONS = Object.freeze([
+    Object.freeze({ currentKey: GM_PROMPTS_KEY, legacyKeys: LEGACY_PROMPT_KEYS, kind: 'prompt-library' }),
+    Object.freeze({ currentKey: GM_SETTINGS_KEY, legacyKeys: LEGACY_SETTINGS_KEYS, kind: 'settings' })
+]);
 export const GM_ROLLBACK_KEY = 'gemini_prompt_rollback_v1';
 export const GM_SECRETS_KEY = 'gemini_local_secrets_v1';
 export const FULL_WIDTH_STYLE_ID = 'gemini-panel-full-width-style';

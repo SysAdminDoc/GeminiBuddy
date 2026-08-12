@@ -1,6 +1,17 @@
 (function(global) {
   'use strict';
 
+  const PROJECT_VERSION = '53.0.0';
+  const PROMPTS_KEY = 'gemini_custom_prompts_v6';
+  const SETTINGS_KEY = 'gemini_panel_settings_v25';
+  const HISTORY_KEY = 'gemini_prompt_history_v1';
+  const LEGACY_PROMPT_KEYS = Object.freeze(['gemini_custom_prompts_v5', 'gemini_custom_prompts_v2']);
+  const LEGACY_SETTINGS_KEYS = Object.freeze(['gemini_panel_settings_v24']);
+  const STORAGE_MIGRATIONS = Object.freeze([
+    Object.freeze({ currentKey: PROMPTS_KEY, legacyKeys: LEGACY_PROMPT_KEYS, kind: 'prompt-library' }),
+    Object.freeze({ currentKey: SETTINGS_KEY, legacyKeys: LEGACY_SETTINGS_KEYS, kind: 'settings' })
+  ]);
+
   const defaultSettings = {
     themeName: 'dark',
     position: 'left',
@@ -112,10 +123,13 @@
   }
 
   global.GeminiBuddyStorageSchema = Object.freeze({
-    PROMPTS_KEY: 'gemini_custom_prompts_v6',
-    SETTINGS_KEY: 'gemini_panel_settings_v25',
-    HISTORY_KEY: 'gemini_prompt_history_v1',
-    LEGACY_SETTINGS_KEYS: Object.freeze(['gemini_panel_settings_v24']),
+    PROJECT_VERSION,
+    PROMPTS_KEY,
+    SETTINGS_KEY,
+    HISTORY_KEY,
+    LEGACY_PROMPT_KEYS,
+    LEGACY_SETTINGS_KEYS,
+    STORAGE_MIGRATIONS,
     defaultSettings: Object.freeze(defaultSettings),
     normalizePromptLibrary,
     normalizeSettings,

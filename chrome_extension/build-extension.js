@@ -1,6 +1,7 @@
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { assertVersionConsistency } = require('./version-check');
 
 const rootDir = path.resolve(__dirname, '..');
 const extensionDir = __dirname;
@@ -8,6 +9,8 @@ const distDir = path.join(extensionDir, 'dist');
 const unpackedDir = path.join(distDir, 'geminibuddy-mv3');
 const packageJson = require('./package.json');
 const zipPath = path.join(distDir, `geminibuddy-mv3-v${packageJson.version}.zip`);
+
+assertVersionConsistency(rootDir);
 
 function removeIfExists(targetPath) {
   if (fs.existsSync(targetPath)) {

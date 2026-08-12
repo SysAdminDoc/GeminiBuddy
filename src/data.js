@@ -4,7 +4,9 @@
 // --- CONFIG & KEYS ---
 const DEFAULT_PROMPTS_URL = "https://raw.githubusercontent.com/SysAdminDoc/Gemini-Prompt-Panel/refs/heads/main/Prompts/defaultpromptlist.json";
 const GM_PROMPTS_KEY = 'gemini_custom_prompts_v6';
-const GM_SETTINGS_KEY = 'gemini_panel_settings_v24';
+const GM_SETTINGS_KEY = 'gemini_panel_settings_v25';
+const GM_LEGACY_PROMPT_KEYS = ['gemini_custom_prompts_v5', 'gemini_custom_prompts_v2'];
+const GM_LEGACY_SETTINGS_KEYS = ['gemini_panel_settings_v24'];
 const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
 const FULL_WIDTH_STYLE_ID = 'gemini-panel-full-width-style';
 
@@ -48,7 +50,18 @@ const presetThemes = {
 
 // --- SETTINGS & PROMPT FUNCTIONS ---
 async function loadSettings() {
-    let loadedSettings = await GM_getValue(GM_SETTINGS_KEY, defaultSettings);
+    let loadedSettings = await GM_getValue(GM_SETTINGS_KEY, null);
+    if (!loadedSettings || typeof loadedSettings !== 'object' || Array.isArray(loadedSettings)) {
+        for (const legacyKey of GM_LEGACY_SETTINGS_KEYS) {
+            const legacySettings = await GM_getValue(legacyKey, null);
+            if (!legacySettings || typeof legacySettings !== 'object' || Array.isArray(legacySettings)) continue;
+            loadedSettings = legacySettings;
+            await GM_setValue(GM_SETTINGS_KEY, loadedSettings);
+            if (typeof GM_deleteValue === 'function') await GM_deleteValue(legacyKey);
+            break;
+        }
+    }
+    loadedSettings = loadedSettings || defaultSettings;
     settings = { ...defaultSettings, ...loadedSettings };
     settings.colors = { ...defaultSettings.colors, ...(settings.colors || {}) };
     settings.groupColors = settings.groupColors || {};

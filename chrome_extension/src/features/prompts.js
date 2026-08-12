@@ -1,7 +1,7 @@
 // /src/features/prompts.js
 
 import { state, saveSettings, saveHistory, addHistoryEntry, savePromptRollbackSnapshot } from '../state.js';
-import { GM_PROMPTS_KEY, GM_SETTINGS_KEY } from '../config.js';
+import { GM_PROMPTS_KEY, GM_SETTINGS_KEY, LEGACY_PROMPT_KEYS } from '../config.js';
 import { GM_getValue, GM_setValue } from '../GM_wrappers.js';
 import { icons } from '../icons.js';
 import { showToast, capitalizeFirstLetter, showDecisionDialog } from '../utils.js';
@@ -23,10 +23,24 @@ export function ensurePromptIDs(prompts) {
 export async function loadAndDisplayPrompts(isSync = false) {
     if (!isSync) {
         let raw = await GM_getValue(GM_PROMPTS_KEY);
+        let migratedPromptKey = '';
+        if (!raw) {
+            for (const legacyKey of LEGACY_PROMPT_KEYS) {
+                const legacyRaw = await GM_getValue(legacyKey, null);
+                if (!legacyRaw) continue;
+                raw = legacyRaw;
+                migratedPromptKey = legacyKey;
+                break;
+            }
+        }
         try {
             let loadedPrompts = JSON.parse(raw);
             if (typeof loadedPrompts === 'object' && loadedPrompts !== null && Object.keys(loadedPrompts).length > 0) {
                 state.currentPrompts = loadedPrompts;
+                if (migratedPromptKey) {
+                    await GM_setValue(GM_PROMPTS_KEY, raw);
+                    localStorage.removeItem(migratedPromptKey);
+                }
             } else { throw new Error("No prompts stored, checking for first run."); }
         } catch (e) {
             console.log(e.message);

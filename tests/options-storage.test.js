@@ -99,3 +99,24 @@ test('options preserves grouped prompts and migrates settings storage', async ()
   assert.strictEqual(Object.prototype.hasOwnProperty.call(storageValues, 'gemini_panel_settings_v24'), false);
   console.log('options storage schema passed');
 });
+
+test('options migrates the oldest prompt key once and retires it', async () => {
+  delete storageValues.gemini_custom_prompts_v6;
+  storageValues.gemini_custom_prompts_v2 = JSON.stringify([
+    { name: 'Legacy prompt', text: 'Keep this prompt.' }
+  ]);
+
+  const migrated = await hooks.loadCanonicalValue(
+    'gemini_custom_prompts_v6',
+    '{}',
+    ['gemini_custom_prompts_v5', 'gemini_custom_prompts_v2'],
+    hooks.normalizePromptLibrary
+  );
+
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(migrated.value)), {
+    'Imported Prompts': [{ name: 'Legacy prompt', text: 'Keep this prompt.' }]
+  });
+  assert.strictEqual(migrated.migrated, true);
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(storageValues, 'gemini_custom_prompts_v6'), true);
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(storageValues, 'gemini_custom_prompts_v2'), false);
+});

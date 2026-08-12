@@ -7,6 +7,7 @@
   const {
     PROMPTS_KEY,
     SETTINGS_KEY,
+    LEGACY_PROMPT_KEYS,
     LEGACY_SETTINGS_KEYS,
     defaultSettings,
     normalizePromptLibrary,
@@ -150,7 +151,7 @@
   }
 
   async function loadState() {
-    const promptState = await loadCanonicalValue(PROMPTS_KEY, '{}', [], normalizePromptLibrary);
+    const promptState = await loadCanonicalValue(PROMPTS_KEY, '{}', LEGACY_PROMPT_KEYS, normalizePromptLibrary);
     const settingsState = await loadCanonicalValue(SETTINGS_KEY, defaultSettings, LEGACY_SETTINGS_KEYS, normalizeSettings);
     const prompts = promptState.value;
     settings = settingsState.value;
