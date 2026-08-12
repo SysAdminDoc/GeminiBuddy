@@ -7,8 +7,22 @@
     panelWidth: 320,
     gistURL: '',
     gistFileName: 'gemini-prompts.json',
-    marketplaceURL: ''
+    marketplaceURL: '',
+    allowedImportOrigins: []
   };
+  const PROMPT_EXPORT_SCHEMA_VERSION = 1;
+
+  function normalizeAllowedImportOrigins(values) {
+    const input = Array.isArray(values) ? values : String(values || '').split(',');
+    return [...new Set(input.map(value => {
+      try {
+        const url = new URL(String(value).trim());
+        return url.protocol === 'https:' ? url.origin : '';
+      } catch (_error) {
+        return '';
+      }
+    }).filter(Boolean))];
+  }
 
   function parseJsonValue(rawValue, label) {
     if (typeof rawValue !== 'string') return rawValue;
@@ -23,6 +37,7 @@
   function normalizePromptLibrary(rawValue) {
     const parsed = parseJsonValue(rawValue, 'Prompt library');
     if (parsed === null || parsed === undefined) return {};
+    if (parsed && !Array.isArray(parsed) && parsed.schemaVersion !== undefined) return normalizePromptLibrary(parsed.prompts);
     if (Array.isArray(parsed)) {
       return parsed.length ? { 'Imported Prompts': parsed } : {};
     }
@@ -40,13 +55,60 @@
     return groups;
   }
 
+  async function hashPromptExportPayload(payload) {
+    const subtle = globalThis.crypto?.subtle;
+    if (!subtle || typeof TextEncoder === 'undefined') throw new Error('SHA-256 is unavailable in this browser.');
+    const digest = await subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload)));
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function createPromptExport(promptGroups) {
+    const payload = {
+      schemaVersion: PROMPT_EXPORT_SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      prompts: normalizePromptLibrary(promptGroups)
+    };
+    const checksum = await hashPromptExportPayload(payload);
+    return {
+      ...payload,
+      manifest: {
+        algorithm: 'SHA-256',
+        checksum,
+        groupCount: Object.keys(payload.prompts).length,
+        promptCount: Object.values(payload.prompts).flat().length
+      }
+    };
+  }
+
+  async function parsePromptImport(rawValue) {
+    const parsed = parseJsonValue(rawValue, 'Prompt import');
+    if (parsed?.schemaVersion !== undefined) {
+      if (!parsed.manifest?.checksum) throw new Error('Verified exports must include a checksum manifest.');
+      const expected = await hashPromptExportPayload({
+        schemaVersion: parsed.schemaVersion,
+        exportedAt: parsed.exportedAt,
+        prompts: parsed.prompts
+      });
+      if (expected !== parsed.manifest.checksum) throw new Error('Export checksum verification failed.');
+    }
+    const prompts = normalizePromptLibrary(parsed);
+    const promptCount = Object.values(prompts).flat().length;
+    if (!promptCount) throw new Error('No prompts found in import.');
+    return { prompts, promptCount, groupCount: Object.keys(prompts).length, rejected: [] };
+  }
+
   function normalizeSettings(rawValue) {
     const parsed = parseJsonValue(rawValue, 'Settings');
     if (parsed === null || parsed === undefined) return { ...defaultSettings };
     if (typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new Error('Settings must be a JSON object.');
     }
-    return { ...defaultSettings, ...parsed };
+    const { geminiAPIKey: _legacyApiKey, gistToken: _legacyGistToken, ...safeSettings } = parsed;
+    return {
+      ...defaultSettings,
+      ...safeSettings,
+      allowedImportOrigins: normalizeAllowedImportOrigins(safeSettings.allowedImportOrigins)
+    };
   }
 
   global.GeminiBuddyStorageSchema = Object.freeze({
@@ -56,6 +118,10 @@
     LEGACY_SETTINGS_KEYS: Object.freeze(['gemini_panel_settings_v24']),
     defaultSettings: Object.freeze(defaultSettings),
     normalizePromptLibrary,
-    normalizeSettings
+    normalizeSettings,
+    normalizeAllowedImportOrigins,
+    PROMPT_EXPORT_SCHEMA_VERSION,
+    createPromptExport,
+    parsePromptImport
   });
 })(globalThis);

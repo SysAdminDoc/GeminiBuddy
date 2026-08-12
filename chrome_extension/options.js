@@ -11,7 +11,9 @@
     defaultSettings,
     normalizePromptLibrary,
     normalizeSettings,
-    normalizeAllowedImportOrigins
+    normalizeAllowedImportOrigins,
+    createPromptExport,
+    parsePromptImport
   } = schema;
   const storage = chrome.storage.sync || chrome.storage.local;
   const CHUNK_SIZE = 7000;
@@ -121,7 +123,13 @@
   async function loadCanonicalValue(key, defaultValue, legacyKeys, normalize) {
     const currentMeta = await getStorage([key]);
     if (Object.prototype.hasOwnProperty.call(currentMeta, key)) {
-      return { value: normalize(await getStoredValue(key, defaultValue)), migrated: false };
+      const rawValue = await getStoredValue(key, defaultValue);
+      const value = normalize(rawValue);
+      if (key === SETTINGS_KEY && rawValue && (Object.prototype.hasOwnProperty.call(rawValue, 'geminiAPIKey') || Object.prototype.hasOwnProperty.call(rawValue, 'gistToken'))) {
+        await setStoredValue(key, value);
+        return { value, migrated: true };
+      }
+      return { value, migrated: false };
     }
 
     for (const legacyKey of legacyKeys) {
@@ -181,26 +189,27 @@
     setStatus('Saved settings to sync storage', 'success');
   }
 
-  function exportPrompts() {
+  async function exportPrompts() {
     const prompts = normalizePromptLibrary(promptsJsonEl.value);
-    const blob = new Blob([formatPrompts(prompts)], { type: 'application/json' });
+    const exportData = await createPromptExport(prompts);
+    const blob = new Blob([formatPrompts(exportData)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = 'geminibuddy-prompts.json';
     anchor.click();
     URL.revokeObjectURL(url);
-    setStatus(`Exported ${prompts.length} prompts`, 'success');
+    setStatus(`Exported ${exportData.manifest.promptCount} verified prompts`, 'success');
   }
 
   function importPrompts(file) {
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
-        const prompts = normalizePromptLibrary(reader.result);
+        const preview = await parsePromptImport(reader.result);
+        const prompts = preview.prompts;
         promptsJsonEl.value = formatPrompts(prompts);
-        const promptCount = Object.values(prompts).flat().length;
-        setStatus(`Imported ${promptCount} prompts, save to sync when ready`, 'success');
+        setStatus(`Dry-run import: ${preview.promptCount} prompts in ${preview.groupCount} groups; review and save to sync`, 'success');
       } catch (error) {
         setStatus(error.message, 'error');
       }
@@ -216,11 +225,7 @@
     savePromptsFromTextarea().catch(error => setStatus(error.message, 'error'));
   });
   document.getElementById('export-prompts').addEventListener('click', () => {
-    try {
-      exportPrompts();
-    } catch (error) {
-      setStatus(error.message, 'error');
-    }
+    exportPrompts().catch(error => setStatus(error.message, 'error'));
   });
   document.getElementById('import-prompts').addEventListener('change', event => {
     const [file] = event.target.files || [];
@@ -240,7 +245,9 @@
       loadCanonicalValue,
       loadState,
       normalizePromptLibrary,
-      normalizeSettings
+      normalizeSettings,
+      createPromptExport,
+      parsePromptImport
     });
   }
 })();

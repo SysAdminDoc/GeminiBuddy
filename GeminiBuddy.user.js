@@ -2266,6 +2266,158 @@
         promptFormModal.style.display = 'flex';
         nameInput.focus();
     }
+    const PROMPT_EXPORT_SCHEMA_VERSION = 1;
+
+    function clonePromptGroups(groups) {
+        return JSON.parse(JSON.stringify(groups || {}));
+    }
+
+    async function hashPromptExportPayload(payload) {
+        const subtle = globalThis.crypto?.subtle || window.crypto?.subtle;
+        if (!subtle || typeof TextEncoder === 'undefined') throw new Error('SHA-256 is unavailable in this browser.');
+        const bytes = new TextEncoder().encode(JSON.stringify(payload));
+        const digest = await subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function createPromptExport(promptGroups = currentPrompts) {
+        const payload = {
+            schemaVersion: PROMPT_EXPORT_SCHEMA_VERSION,
+            exportedAt: new Date().toISOString(),
+            prompts: clonePromptGroups(promptGroups)
+        };
+        const checksum = await hashPromptExportPayload(payload);
+        return {
+            ...payload,
+            manifest: {
+                algorithm: 'SHA-256',
+                checksum,
+                groupCount: Object.keys(payload.prompts).length,
+                promptCount: Object.values(payload.prompts).flat().length
+            }
+        };
+    }
+
+    function importPromptText(item) {
+        return String(item?.text || item?.prompt || item?.content || item?.body || '').trim();
+    }
+
+    function importPromptName(item, index) {
+        return String(item?.name || item?.title || item?.label || item?.slug || `Imported Prompt ${index + 1}`).trim();
+    }
+
+    function normalizePromptImport(data) {
+        const rejected = [];
+        const adjustedIds = [];
+        let source = data;
+        let sourceShape = 'grouped';
+        if (data && typeof data === 'object' && !Array.isArray(data) && data.schemaVersion !== undefined) {
+            if (Number(data.schemaVersion) !== PROMPT_EXPORT_SCHEMA_VERSION) {
+                throw new Error(`Unsupported prompt export schema version: ${data.schemaVersion}`);
+            }
+            source = data.prompts;
+            sourceShape = 'verified-export';
+        }
+
+        let rawGroups;
+        if (Array.isArray(source)) {
+            rawGroups = { Marketplace: source };
+            sourceShape = 'array';
+        } else if (source && typeof source === 'object' && Array.isArray(source.prompts)) {
+            rawGroups = { [String(source.category || source.name || 'Marketplace').trim() || 'Marketplace']: source.prompts };
+            sourceShape = 'marketplace';
+        } else if (source && typeof source === 'object') {
+            rawGroups = source;
+        } else {
+            throw new Error('Prompt import must be a grouped object, prompt array, or marketplace object.');
+        }
+
+        const groups = {};
+        const seenIds = new Set();
+        Object.entries(rawGroups).forEach(([rawGroupName, rawItems]) => {
+            const groupName = String(rawGroupName || '').trim();
+            if (!groupName || !Array.isArray(rawItems)) {
+                rejected.push(`${groupName || '(unnamed group)'}: group must contain an array.`);
+                return;
+            }
+            groups[groupName] ||= [];
+            rawItems.forEach((item, index) => {
+                if (!item || typeof item !== 'object' || Array.isArray(item)) {
+                    rejected.push(`${groupName}[${index + 1}]: item must be an object.`);
+                    return;
+                }
+                const text = importPromptText(item);
+                if (!text) {
+                    rejected.push(`${groupName}[${index + 1}]: prompt text is empty.`);
+                    return;
+                }
+                const name = importPromptName(item, index);
+                const originalId = String(item.id || `prompt-import-${Object.values(groups).flat().length + 1}`).trim();
+                let id = originalId || `prompt-import-${Object.values(groups).flat().length + 1}`;
+                if (seenIds.has(id)) {
+                    let suffix = 2;
+                    while (seenIds.has(`${id}-${suffix}`)) suffix += 1;
+                    id = `${id}-${suffix}`;
+                    adjustedIds.push(`${groupName}[${index + 1}] → ${id}`);
+                }
+                seenIds.add(id);
+                groups[groupName].push({
+                    id,
+                    name,
+                    text,
+                    tags: normalizeTagsValue(item.tags),
+                    autoSend: !!item.autoSend,
+                    pinned: !!item.pinned,
+                    usageCount: Number.isFinite(Number(item.usageCount)) ? Number(item.usageCount) : 0,
+                    lastUsed: item.lastUsed || null,
+                    chainSteps: normalizeChainSteps(item.chainSteps || item.followUps || item.steps),
+                    gemUrl: normalizeGemUrl(item.gemUrl || item.gemURL || item.gem)
+                });
+            });
+            if (groups[groupName].length === 0) delete groups[groupName];
+        });
+        return { groups, rejected, adjustedIds, sourceShape };
+    }
+
+    async function buildPromptImportPreview(rawText) {
+        let parsed;
+        try {
+            parsed = JSON.parse(rawText);
+        } catch (_error) {
+            throw new Error('Import contains invalid JSON.');
+        }
+        if (parsed && parsed.schemaVersion !== undefined) {
+            if (!parsed.manifest?.checksum) throw new Error('Verified exports must include a checksum manifest.');
+            const payload = {
+                schemaVersion: parsed.schemaVersion,
+                exportedAt: parsed.exportedAt,
+                prompts: parsed.prompts
+            };
+            const checksum = await hashPromptExportPayload(payload);
+            if (checksum !== parsed.manifest.checksum) throw new Error('Export checksum verification failed.');
+        }
+        const preview = normalizePromptImport(parsed);
+        preview.promptCount = Object.values(preview.groups).flat().length;
+        preview.groupCount = Object.keys(preview.groups).length;
+        if (preview.promptCount === 0) throw new Error(`No valid prompts found. Rejected entries: ${preview.rejected.length}.`);
+        return preview;
+    }
+
+    function mergeImportedPromptGroups(promptGroups) {
+        Object.entries(promptGroups).forEach(([category, prompts]) => {
+            if (!currentPrompts[category]) currentPrompts[category] = [];
+            currentPrompts[category].push(...prompts);
+            if (!settings.groupOrder.includes(category)) settings.groupOrder.push(category);
+        });
+        ensurePromptIDs(currentPrompts);
+    }
+
+    function showImportPreview(container, preview) {
+        container.textContent = `Dry-run preview (${preview.sourceShape}): ${preview.promptCount} valid prompt${preview.promptCount === 1 ? '' : 's'} in ${preview.groupCount} group${preview.groupCount === 1 ? '' : 's'}.`;
+        if (preview.rejected.length) container.textContent += ` Rejected ${preview.rejected.length}: ${preview.rejected.slice(0, 5).join(' | ')}${preview.rejected.length > 5 ? '…' : ''}`;
+        if (preview.adjustedIds.length) container.textContent += ` Adjusted duplicate IDs: ${preview.adjustedIds.length}.`;
+    }
+
     function showImportExportModal() {
         const modalBody = importExportModal.querySelector('.modal-body');
         safeSetInnerHTML(modalBody, ''); // Clear previous content
@@ -2308,10 +2460,15 @@
         fileBtn.classList.add('file-import-button');
         fileBtn.type = 'button';
         const importBtn = createButtonWithIcon('Import and Merge', null);
+        const importPreview = document.createElement('p');
+        importPreview.className = 'import-preview';
+        importPreview.setAttribute('role', 'status');
+        importPreview.setAttribute('aria-live', 'polite');
+        let pendingImport = null;
         const btnGroup = document.createElement('div');
         btnGroup.className = 'button-group';
         btnGroup.append(fileBtn, importBtn);
-        importSection.append(importLabel, importTextarea, fileInput, btnGroup);
+        importSection.append(importLabel, importTextarea, fileInput, importPreview, btnGroup);
 
         modalBody.append(exportSection, urlSection, importSection);
         importExportModal.style.display = 'flex';
@@ -2321,25 +2478,38 @@
         closeBtn.onclick = closeModal;
         importExportModal.addEventListener('click', e => { if (e.target === importExportModal) closeModal(); });
 
-        exportBtn.onclick = () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentPrompts, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "gemini_prompts_export.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-            showToast('Exporting prompts...', 2000, 'success');
+        exportBtn.onclick = async () => {
+            try {
+                const exportData = await createPromptExport();
+                const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "gemini_prompts_export.json");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                showToast('Exporting verified prompt backup...', 2000, 'success');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 3000, 'error');
+            }
         };
 
+        const resetImportPreview = () => {
+            pendingImport = null;
+            importPreview.textContent = '';
+            importBtn.textContent = 'Preview Import';
+        };
+        importTextarea.addEventListener('input', resetImportPreview);
         fileBtn.onclick = () => fileInput.click();
         fileInput.onchange = (e) => {
+            resetImportPreview();
             lastFetchedUrl = null;
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = (event) => {
                 importTextarea.value = event.target.result;
+                resetImportPreview();
                 showToast(`Loaded ${file.name}`);
             };
             reader.readAsText(file);
@@ -2360,6 +2530,7 @@
                 onload: function(response) {
                     importTextarea.value = response.responseText;
                     lastFetchedUrl = url;
+                    resetImportPreview();
                     showToast('Fetched content from URL.', 2000, 'success');
                     fetchBtn.textContent = 'Fetch'; fetchBtn.disabled = false; urlInput.value = '';
                 },
@@ -2371,36 +2542,38 @@
             });
         };
 
-        importBtn.onclick = () => {
+        importBtn.textContent = 'Preview Import';
+        importBtn.onclick = async () => {
             try {
-                const importedData = JSON.parse(importTextarea.value);
-                if (typeof importedData !== 'object' || importedData === null) { throw new Error('Invalid JSON format.'); }
+                if (!pendingImport) {
+                    pendingImport = await buildPromptImportPreview(importTextarea.value);
+                    showImportPreview(importPreview, pendingImport);
+                    importBtn.textContent = 'Apply Import';
+                    showToast('Dry-run complete. Review the import summary, then apply it.', 3000, 'success');
+                    return;
+                }
+
+                await savePromptRollbackSnapshot('prompt-import');
+                let groupsToMerge = pendingImport.groups;
 
                 if (lastFetchedUrl) {
                     const filename = lastFetchedUrl.split('/').pop().split('?')[0];
                     let newGroupName = filename;
                     let counter = 1;
                     while(currentPrompts[newGroupName]) { newGroupName = `${filename} (${counter++})`; }
-                    const allPrompts = Object.values(importedData).flat();
-                    currentPrompts[newGroupName] = allPrompts;
-                    if(!settings.groupOrder.includes(newGroupName)) { settings.groupOrder.push(newGroupName); }
-                } else {
-                    for (const category in importedData) {
-                        if (currentPrompts[category]) {
-                            currentPrompts[category].push(...importedData[category]);
-                        } else {
-                            currentPrompts[category] = importedData[category];
-                            if (!settings.groupOrder.includes(category)) { settings.groupOrder.push(category); }
-                        }
-                    }
+                    groupsToMerge = { [newGroupName]: Object.values(groupsToMerge).flat() };
                 }
-                ensurePromptIDs(currentPrompts);
-                Promise.all([savePrompts(), saveSettings()]).then(() => {
-                    renderAllPrompts();
-                    showToast('Prompts imported successfully!', 2000, 'success');
-                    closeModal();
-                });
-            } catch (error) { showToast('Error importing: ' + error.message, 3000, 'error'); }
+
+                mergeImportedPromptGroups(groupsToMerge);
+                await Promise.all([savePrompts(), saveSettings()]);
+                renderAllPrompts();
+                showToast(`Imported ${pendingImport.promptCount} validated prompt${pendingImport.promptCount === 1 ? '' : 's'}.`, 2500, 'success');
+                closeModal();
+            } catch (error) {
+                pendingImport = null;
+                importBtn.textContent = 'Preview Import';
+                showToast('Error importing: ' + error.message, 3500, 'error');
+            }
         };
     }
     async function showAIEnhancer(promptData) {
@@ -3585,6 +3758,9 @@
             normalizeGemUrl,
             extractGistIdFromUrl,
             normalizeMarketplacePrompts,
+            normalizePromptImport,
+            buildPromptImportPreview,
+            createPromptExport,
             encodeSharePayload,
             decodeSharePayload,
             getShareHashPayload,

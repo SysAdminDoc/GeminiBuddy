@@ -2,6 +2,8 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { webcrypto } = require('crypto');
+const { test } = require('node:test');
 
 function createElement(tagName = 'div') {
   const element = {
@@ -96,6 +98,8 @@ const sandbox = {
   clearInterval,
   requestAnimationFrame: callback => callback(),
   URL,
+  crypto: webcrypto,
+  TextEncoder,
   btoa: value => Buffer.from(String(value), 'binary').toString('base64'),
   atob: value => Buffer.from(String(value), 'base64').toString('binary'),
   escape,
@@ -231,5 +235,30 @@ assert.strictEqual(
   hooks.normalizeSharedPrompt({ title: 'Shared title', prompt: 'Prompt text' }).name,
   'Shared title'
 );
+
+test('prompt transfer validates shapes, repairs duplicate IDs, and verifies exports', async () => {
+  const normalized = hooks.normalizePromptImport({
+    Team: [
+      { id: 'same', name: 'First', text: 'First prompt' },
+      { id: 'same', title: 'Second', prompt: 'Second prompt' },
+      { name: 'Rejected', prompt: '' }
+    ]
+  });
+  assert.strictEqual(normalized.promptCount, undefined);
+  assert.strictEqual(normalized.groups.Team.length, 2);
+  assert.strictEqual(normalized.adjustedIds.length, 1);
+  assert.strictEqual(normalized.rejected.length, 1);
+
+  const exported = await hooks.createPromptExport({
+    Team: [{ id: 'same', name: 'First', text: 'First prompt' }]
+  });
+  assert.strictEqual(exported.schemaVersion, 1);
+  assert.strictEqual(exported.manifest.algorithm, 'SHA-256');
+  assert.strictEqual(exported.manifest.promptCount, 1);
+  const preview = await hooks.buildPromptImportPreview(JSON.stringify(exported));
+  assert.strictEqual(preview.promptCount, 1);
+  exported.prompts.Team[0].text = 'tampered';
+  await assert.rejects(() => hooks.buildPromptImportPreview(JSON.stringify(exported)), /checksum verification failed/);
+});
 
 console.log('userscript helpers passed');

@@ -8,6 +8,8 @@ import { updateLockIcon } from './mainPanel.js';
 import { callGeminiAPI } from '../features/api.js';
 import { GM_xmlhttpRequest } from '../GM_wrappers.js';
 import { GM_SETTINGS_KEY } from '../config.js';
+import { authorizeRemoteUrl } from '../network.js';
+import { createPromptExport, parsePromptImport, mergePromptGroups } from '../features/transfer.js';
 
 export function buildAnalyticsModal() {
     const modal = document.createElement('div');
@@ -429,15 +431,20 @@ export function buildImportExportModal() {
     exportLabel.textContent = 'Export Prompts';
     const exportBtn = createButtonWithIcon('Export to JSON File', icons.importExport.cloneNode(true));
     exportBtn.classList.add('copy-btn');
-    exportBtn.addEventListener('click', () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.currentPrompts, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "gemini_prompts_export.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-        showToast('Exporting prompts...', 2000, 'success');
+    exportBtn.addEventListener('click', async () => {
+        try {
+            const exportData = await createPromptExport(state.currentPrompts);
+            const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "gemini_prompts_export.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            showToast('Exporting verified prompt backup...', 2000, 'success');
+        } catch (error) {
+            showToast('Export failed: ' + error.message, 3000, 'error');
+        }
     });
     exportSection.append(exportLabel, exportBtn);
 
@@ -470,30 +477,48 @@ export function buildImportExportModal() {
     const fileBtn = createButtonWithIcon('Select JSON File', icons.uploadFile.cloneNode(true));
     fileBtn.classList.add('file-import-button');
     fileBtn.type = 'button';
-    const importBtn = createButtonWithIcon('Import and Merge', null);
+    const importBtn = createButtonWithIcon('Preview Import', null);
+    const importPreview = document.createElement('p');
+    importPreview.className = 'import-preview';
+    importPreview.setAttribute('role', 'status');
+    importPreview.setAttribute('aria-live', 'polite');
+    let pendingImport = null;
 
     const btnGroup = document.createElement('div');
     btnGroup.className = 'button-group';
     btnGroup.append(fileBtn, importBtn);
-    importSection.append(importLabel, importTextarea, fileInput, btnGroup);
+    importSection.append(importLabel, importTextarea, fileInput, importPreview, btnGroup);
+
+    const resetImportPreview = () => {
+        pendingImport = null;
+        importPreview.textContent = '';
+        importBtn.textContent = 'Preview Import';
+    };
+    importTextarea.addEventListener('input', resetImportPreview);
 
     fileBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
+        resetImportPreview();
         state.lastFetchedUrl = null;
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (event) => {
             importTextarea.value = event.target.result;
+            resetImportPreview();
             showToast(`Loaded ${file.name}`);
         };
         reader.readAsText(file);
         fileInput.value = '';
     });
-    fetchBtn.addEventListener('click', () => {
+    fetchBtn.addEventListener('click', async () => {
         const url = urlInput.value.trim();
         if (!url) {
             showToast("Please enter a URL.", 2000, 'error');
+            return;
+        }
+        if (!(await authorizeRemoteUrl(url, state.settings.allowedImportOrigins))) {
+            showToast('Remote imports require an allowed HTTPS origin or browser permission.', 3500, 'error');
             return;
         }
         fetchBtn.textContent = 'Fetching...';
@@ -504,6 +529,7 @@ export function buildImportExportModal() {
             onload: function(response) {
                 importTextarea.value = response.responseText;
                 state.lastFetchedUrl = url;
+                resetImportPreview();
                 showToast('Fetched content from URL.', 2000, 'success');
                 fetchBtn.textContent = 'Fetch';
                 fetchBtn.disabled = false;
@@ -518,46 +544,43 @@ export function buildImportExportModal() {
         });
     });
 
-    importBtn.addEventListener('click', () => {
+    importBtn.addEventListener('click', async () => {
         try {
-            const importedData = JSON.parse(importTextarea.value);
-            if (typeof importedData !== 'object' || importedData === null) {
-                throw new Error('Invalid JSON format.');
+            if (!pendingImport) {
+                pendingImport = await parsePromptImport(importTextarea.value);
+                importPreview.textContent = `Dry-run preview (${pendingImport.sourceShape}): ${pendingImport.promptCount} valid prompts in ${pendingImport.groupCount} groups.`;
+                if (pendingImport.rejected.length) importPreview.textContent += ` Rejected ${pendingImport.rejected.length}: ${pendingImport.rejected.slice(0, 5).join(' | ')}`;
+                if (pendingImport.adjustedIds.length) importPreview.textContent += ` Adjusted duplicate IDs: ${pendingImport.adjustedIds.length}.`;
+                importBtn.textContent = 'Apply Import';
+                showToast('Dry-run complete. Review the import summary, then apply it.', 3000, 'success');
+                return;
             }
 
+            await savePromptRollbackSnapshot('prompt-import');
+            let groupsToMerge = pendingImport.groups;
             if (state.lastFetchedUrl) {
-                const filename = state.lastFetchedUrl.split('/').pop().split('?')[0];
+                const filename = state.lastFetchedUrl.split('/').pop().split('?')[0] || 'Remote Import';
                 let newGroupName = filename;
                 let counter = 1;
                 while (state.currentPrompts[newGroupName]) {
                     newGroupName = `${filename} (${counter++})`;
                 }
-                const allPrompts = Object.values(importedData).flat();
-                state.currentPrompts[newGroupName] = allPrompts;
-                if (!state.settings.groupOrder.includes(newGroupName)) {
-                    state.settings.groupOrder.push(newGroupName);
-                }
-            } else {
-                for (const category in importedData) {
-                    if (state.currentPrompts[category]) {
-                        state.currentPrompts[category].push(...importedData[category]);
-                    } else {
-                        state.currentPrompts[category] = importedData[category];
-                        if (!state.settings.groupOrder.includes(category)) {
-                            state.settings.groupOrder.push(category);
-                        }
-                    }
-                }
+                groupsToMerge = { [newGroupName]: Object.values(groupsToMerge).flat() };
             }
 
-            ensurePromptIDs(state.currentPrompts);
-            Promise.all([savePrompts(), saveSettings()]).then(() => {
-                renderAllPrompts();
-                showToast('Prompts imported successfully!', 2000, 'success');
-                modal.style.display = 'none';
-                state.lastFetchedUrl = null;
+            mergePromptGroups(state.currentPrompts, groupsToMerge);
+            Object.keys(groupsToMerge).forEach(category => {
+                if (!state.settings.groupOrder.includes(category)) state.settings.groupOrder.push(category);
             });
+            ensurePromptIDs(state.currentPrompts);
+            await Promise.all([savePrompts(), saveSettings()]);
+            renderAllPrompts();
+            showToast(`Imported ${pendingImport.promptCount} validated prompts.`, 2500, 'success');
+            modal.style.display = 'none';
+            state.lastFetchedUrl = null;
         } catch (error) {
+            pendingImport = null;
+            importBtn.textContent = 'Preview Import';
             showToast('Error importing: ' + error.message, 3000, 'error');
         }
     });
