@@ -115,7 +115,7 @@
   };
 
   globalThis.GM_xmlhttpRequest = function(options) {
-    fetch(options.url, {
+    const performRequest = () => fetch(options.url, {
       method: options.method || 'GET',
       headers: options.headers || {},
       body: options.data
@@ -132,5 +132,15 @@
         error
       });
     });
+
+    const policy = globalThis.GeminiBuddyNetworkPolicy;
+    if (policy && !policy.isBuiltinUrl(options.url)) {
+      policy.requestPermission(options.url).then(granted => {
+        if (granted) performRequest();
+        else options.onerror?.({ statusText: 'Remote origin permission was not granted.' });
+      });
+      return;
+    }
+    performRequest();
   };
 })();

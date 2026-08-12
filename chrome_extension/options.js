@@ -10,7 +10,8 @@
     LEGACY_SETTINGS_KEYS,
     defaultSettings,
     normalizePromptLibrary,
-    normalizeSettings
+    normalizeSettings,
+    normalizeAllowedImportOrigins
   } = schema;
   const storage = chrome.storage.sync || chrome.storage.local;
   const CHUNK_SIZE = 7000;
@@ -23,6 +24,7 @@
   const gistUrlEl = document.getElementById('gist-url');
   const gistFileNameEl = document.getElementById('gist-file-name');
   const marketplaceUrlEl = document.getElementById('marketplace-url');
+  const allowedImportOriginsEl = document.getElementById('allowed-import-origins');
 
   let settings = {};
 
@@ -152,6 +154,7 @@
     gistUrlEl.value = settings.gistURL || '';
     gistFileNameEl.value = settings.gistFileName || 'gemini-prompts.json';
     marketplaceUrlEl.value = settings.marketplaceURL || '';
+    allowedImportOriginsEl.value = (settings.allowedImportOrigins || []).join(', ');
     setStatus(settingsState.migrated ? 'Migrated settings to the current storage schema' : 'Loaded from sync storage', 'success');
   }
 
@@ -171,7 +174,8 @@
       panelWidth: Number(panelWidthEl.value || 320),
       gistURL: gistUrlEl.value.trim(),
       gistFileName: gistFileNameEl.value.trim() || 'gemini-prompts.json',
-      marketplaceURL: marketplaceUrlEl.value.trim()
+      marketplaceURL: marketplaceUrlEl.value.trim(),
+      allowedImportOrigins: normalizeAllowedImportOrigins(allowedImportOriginsEl.value)
     };
     await setStoredValue(SETTINGS_KEY, settings);
     setStatus('Saved settings to sync storage', 'success');
@@ -224,7 +228,7 @@
     event.target.value = '';
   });
 
-  [themeNameEl, panelPositionEl, panelWidthEl, gistUrlEl, gistFileNameEl, marketplaceUrlEl].forEach(control => {
+  [themeNameEl, panelPositionEl, panelWidthEl, gistUrlEl, gistFileNameEl, marketplaceUrlEl, allowedImportOriginsEl].forEach(control => {
     control.addEventListener('change', () => saveSettings().catch(error => setStatus(error.message, 'error')));
   });
 

@@ -32,6 +32,7 @@ export const defaultSettings = {
     fontFamily: 'Verdana, sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
     collapsedCategories: [], favorites: [], groupOrder: [], tagOrder: [], initiallyCollapsed: false, copyButtonOrderSwapped: false,
     showTags: true, showPins: true, enableAIenhancer: true, geminiAPIKey: '', gistURL: '',
+    allowedImportOrigins: [],
     enableMiniMode: true, groupByTags: true, autoCopyCodeOnCompletion: true,
     settingsTheme: 'dark',
     groupColors: {},

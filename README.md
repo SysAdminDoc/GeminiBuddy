@@ -161,6 +161,8 @@ Settings and prompts are stored in your browser's local storage using the follow
   * `gemini_panel_position`
   * `gemini_panel_position_top`
 
+Remote marketplace and JSON imports are limited to the built-in GitHub/Google sources by default. For another HTTPS catalog, add its origin to the **Allowed import origins** setting; the MV3 extension can alternatively request a one-time optional host permission from the browser.
+
 -----
 
 ## Screenshots

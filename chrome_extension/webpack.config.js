@@ -19,7 +19,6 @@ module.exports = {
         author: 'Matthew Parker',
         match: 'https://gemini.google.com/*',
         icon: 'https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/refs/heads/main/Google_Gemini_icon_2025.svg',
-        connect: '*',
         license: 'MIT',
         'run-at': 'document-idle',
         grant: 'none',

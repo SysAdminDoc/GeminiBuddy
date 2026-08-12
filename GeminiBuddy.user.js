@@ -14,7 +14,6 @@
 // @connect      api.github.com
 // @connect      gist.githubusercontent.com
 // @connect      raw.githubusercontent.com
-// @connect      *
 // @run-at       document-idle
 // @license      MIT
 // @updateURL    https://github.com/SysAdminDoc/GeminiBuddy/raw/refs/heads/main/GeminiBuddy.user.js
@@ -65,6 +64,12 @@
     const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
     const GM_PENDING_GEM_PROMPT_KEY = 'gemini_pending_gem_prompt_v1';
     const FULL_WIDTH_STYLE_ID = 'gemini-panel-full-width-style';
+    const BUILTIN_REMOTE_ORIGINS = [
+        'https://api.github.com',
+        'https://gist.githubusercontent.com',
+        'https://raw.githubusercontent.com',
+        'https://generativelanguage.googleapis.com'
+    ];
 
     // --- STATE & SETTINGS ---
     let currentPrompts = {};
@@ -78,7 +83,7 @@
         themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
         fontFamily: 'Verdana, sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
         collapsedCategories: [], favorites: [], groupOrder: [], tagOrder: [], initiallyCollapsed: false, copyButtonOrderSwapped: false,
-        showTags: true, showPins: true, enableAIenhancer: true, geminiAPIKey: '', gistURL: '', gistToken: '', gistFileName: 'gemini-prompts.json', marketplaceURL: '',
+        showTags: true, showPins: true, enableAIenhancer: true, geminiAPIKey: '', gistURL: '', gistToken: '', gistFileName: 'gemini-prompts.json', marketplaceURL: '', allowedImportOrigins: [],
         enableMiniMode: true, groupByTags: true, autoCopyCodeOnCompletion: true,
         groupColors: {},
         colors: {
@@ -139,6 +144,44 @@
         settings.groupColors = settings.groupColors || {};
         settings.groupOrder = settings.groupOrder || [];
         settings.tagOrder = settings.tagOrder || [];
+        settings.allowedImportOrigins = normalizeAllowedOrigins(settings.allowedImportOrigins);
+    }
+
+    function getRemoteOrigin(value) {
+        try {
+            const url = new URL(String(value || ''));
+            return url.protocol === 'https:' ? url.origin : '';
+        } catch (_error) {
+            return '';
+        }
+    }
+
+    function normalizeAllowedOrigins(values) {
+        const input = Array.isArray(values) ? values : String(values || '').split(',');
+        return [...new Set(input.map(value => getRemoteOrigin(String(value).trim())).filter(Boolean))];
+    }
+
+    function isBuiltinRemoteUrl(value) {
+        return BUILTIN_REMOTE_ORIGINS.includes(getRemoteOrigin(value));
+    }
+
+    function isRemoteUrlAllowed(value) {
+        const origin = getRemoteOrigin(value);
+        return !!origin && (isBuiltinRemoteUrl(value) || settings.allowedImportOrigins.includes(origin));
+    }
+
+    function requestOptionalRemotePermission(value) {
+        const policy = globalThis.GeminiBuddyNetworkPolicy;
+        if (policy?.requestPermission) return policy.requestPermission(value);
+        return Promise.resolve(false);
+    }
+
+    async function authorizeRemoteUrl(value) {
+        if (!getRemoteOrigin(value)) return false;
+        if (isRemoteUrlAllowed(value)) return true;
+        const granted = await requestOptionalRemotePermission(value);
+        if (granted) showToast(`Access granted for ${getRemoteOrigin(value)}.`, 2200, 'success');
+        return granted;
     }
     async function saveSettings() {
         await GM_setValue(GM_SETTINGS_KEY, settings);
@@ -2095,9 +2138,13 @@
             fileInput.value = '';
         };
 
-        fetchBtn.onclick = () => {
+        fetchBtn.onclick = async () => {
             const url = urlInput.value.trim();
             if (!url) { showToast("Please enter a URL.", 2000, 'error'); return; }
+            if (!(await authorizeRemoteUrl(url))) {
+                showToast('Remote imports require an allowed HTTPS origin or browser permission.', 3500, 'error');
+                return;
+            }
             fetchBtn.textContent = 'Fetching...';
             fetchBtn.disabled = true;
             GM_xmlhttpRequest({
@@ -3539,6 +3586,10 @@
         const url = (settings.marketplaceURL || '').trim();
         if (!url) {
             showToast("Please provide a marketplace JSON URL.", 2500, 'error');
+            return;
+        }
+        if (!(await authorizeRemoteUrl(url))) {
+            showToast('Marketplace imports require an allowed HTTPS origin or browser permission.', 3500, 'error');
             return;
         }
         showToast("Importing marketplace prompts...", 2000);
