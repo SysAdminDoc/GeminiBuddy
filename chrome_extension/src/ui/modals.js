@@ -1,6 +1,6 @@
 // /src/ui/modals.js
 
-import { state, saveSettings, addHistoryEntry, savePromptRollbackSnapshot } from '../state.js';
+import { state, saveSettings, addHistoryEntry, savePromptRollbackSnapshot, recordDiagnosticEvent } from '../state.js';
 import { icons } from '../icons.js';
 import { createButtonWithIcon, showToast, showDecisionDialog, installModalAccessibility, openAccessibleModal, closeAccessibleModal } from '../utils.js';
 import { ensurePromptIDs, renderAllPrompts, savePrompts } from '../features/prompts.js';
@@ -578,10 +578,12 @@ export function buildImportExportModal() {
             ensurePromptIDs(state.currentPrompts);
             await Promise.all([savePrompts(), saveSettings()]);
             renderAllPrompts();
+            recordDiagnosticEvent('import', 'success', `Imported ${pendingImport.promptCount} prompts.`);
             showToast(`Imported ${pendingImport.promptCount} validated prompts.`, 2500, 'success');
             closeAccessibleModal(modal);
             state.lastFetchedUrl = null;
         } catch (error) {
+            recordDiagnosticEvent('import', 'error', error.message);
             pendingImport = null;
             importBtn.textContent = 'Preview Import';
             showToast('Error importing: ' + error.message, 3000, 'error');
