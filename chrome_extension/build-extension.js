@@ -25,6 +25,7 @@ fs.mkdirSync(unpackedDir, { recursive: true });
 
 copyFile(path.join(extensionDir, 'manifest.json'), path.join(unpackedDir, 'manifest.json'));
 copyFile(path.join(extensionDir, 'gm-shim.js'), path.join(unpackedDir, 'gm-shim.js'));
+copyFile(path.join(extensionDir, 'storage-schema.js'), path.join(unpackedDir, 'storage-schema.js'));
 copyFile(path.join(extensionDir, 'options.html'), path.join(unpackedDir, 'options.html'));
 copyFile(path.join(extensionDir, 'options.css'), path.join(unpackedDir, 'options.css'));
 copyFile(path.join(extensionDir, 'options.js'), path.join(unpackedDir, 'options.js'));

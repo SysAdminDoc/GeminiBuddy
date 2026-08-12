@@ -35,8 +35,15 @@
   }
 
   function storageRemove(keys) {
-    return new Promise(resolve => {
-      storage.remove(keys, resolve);
+    return new Promise((resolve, reject) => {
+      storage.remove(keys, () => {
+        const error = chrome.runtime.lastError;
+        if (error) {
+          reject(new Error(error.message));
+          return;
+        }
+        resolve();
+      });
     });
   }
 
@@ -98,6 +105,12 @@
   globalThis.GM_setValue = function(key, value) {
     return writeStoredValue(key, value).catch(error => {
       console.warn(`GeminiBuddy storage write failed for ${key}:`, error);
+    });
+  };
+
+  globalThis.GM_deleteValue = function(key) {
+    return storageRemove(key).catch(error => {
+      console.warn(`GeminiBuddy storage delete failed for ${key}:`, error);
     });
   };
 

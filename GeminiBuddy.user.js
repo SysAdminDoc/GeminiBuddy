@@ -9,6 +9,7 @@
 // @grant        GM_addStyle
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        GM_deleteValue
 // @grant        GM_xmlhttpRequest
 // @connect      api.github.com
 // @connect      gist.githubusercontent.com
@@ -59,7 +60,8 @@
     const DEFAULT_PROMPTS_URL = "https://raw.githubusercontent.com/SysAdminDoc/Gemini-Prompt-Panel/refs/heads/main/Prompts/defaultpromptlist.json";
     const VEO_PROMPTS_URL = "https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/refs/heads/main/veoprompts/Google_Veo_3_Prompts.json";
     const GM_PROMPTS_KEY = 'gemini_custom_prompts_v6';
-    const GM_SETTINGS_KEY = 'gemini_panel_settings_v24';
+    const GM_SETTINGS_KEY = 'gemini_panel_settings_v25';
+    const GM_LEGACY_SETTINGS_KEYS = ['gemini_panel_settings_v24'];
     const GM_HISTORY_KEY = 'gemini_prompt_history_v1';
     const GM_PENDING_GEM_PROMPT_KEY = 'gemini_pending_gem_prompt_v1';
     const FULL_WIDTH_STYLE_ID = 'gemini-panel-full-width-style';
@@ -119,7 +121,19 @@
 
     // --- SETTINGS & PROMPT FUNCTIONS ---
     async function loadSettings() {
-        let loadedSettings = await GM_getValue(GM_SETTINGS_KEY, defaultSettings);
+        let loadedSettings = await GM_getValue(GM_SETTINGS_KEY, null);
+        if (!loadedSettings || typeof loadedSettings !== 'object' || Array.isArray(loadedSettings)) {
+            const legacySettings = await GM_getValue(GM_LEGACY_SETTINGS_KEYS[0], null);
+            if (legacySettings && typeof legacySettings === 'object' && !Array.isArray(legacySettings)) {
+                loadedSettings = legacySettings;
+                await GM_setValue(GM_SETTINGS_KEY, loadedSettings);
+                if (typeof GM_deleteValue === 'function') {
+                    await GM_deleteValue(GM_LEGACY_SETTINGS_KEYS[0]);
+                }
+            } else {
+                loadedSettings = defaultSettings;
+            }
+        }
         settings = { ...defaultSettings, ...loadedSettings };
         settings.colors = { ...defaultSettings.colors, ...(settings.colors || {}) };
         settings.groupColors = settings.groupColors || {};
