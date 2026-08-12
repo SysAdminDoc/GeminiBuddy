@@ -74,10 +74,12 @@ export const cssStyles = `
     .prompt-button-wrapper { display: flex; flex-direction: column; background: #3a3a3e; border: 1px solid var(--panel-border); border-radius: 6px; cursor: grab; transition: box-shadow .2s, transform .2s; }
     .prompt-button-wrapper.dragging { opacity: 0.5; background: #4a4a4e; }
     .prompt-button-wrapper.drag-over { border-bottom: 2px solid var(--pin-color); }
-    .prompt-button { position:relative; display: flex; align-items: center; padding: 8px; gap: 8px; }
+    .prompt-button { position:relative; display: flex; align-items: center; width: 100%; padding: 8px; gap: 8px; background: transparent; border: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+    .prompt-button:focus-visible, .prompt-category-header:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #8ab4f8; outline-offset: 2px; box-shadow: 0 0 0 2px #1a1a1a; }
     .prompt-button .prompt-button-name { flex-grow: 1; text-align: left; font-weight: 500; font-size: var(--base-font-size); }
     .prompt-button-controls { display: none; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); gap: 2px; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 2px; align-items: center; }
     .prompt-button-wrapper:hover .prompt-button-controls { display: flex; }
+    .prompt-button-wrapper:focus-within .prompt-button-controls { display: flex; }
     .prompt-button-controls button { background: transparent; border: none; cursor: pointer; padding: 3px; border-radius: 50%; display:flex; align-items:center; color: var(--panel-text); }
     .prompt-button-controls button:hover { background-color: rgba(255,255,255,0.15); }
     .favorite-btn.favorited, .pin-btn.pinned { color: var(--favorite-color); }

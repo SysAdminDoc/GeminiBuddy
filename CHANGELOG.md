@@ -12,6 +12,7 @@ All notable changes to GeminiBuddy will be documented in this file.
 - Added shared storage migration tables for legacy prompt/settings keys and a build/test guard for version and storage-key drift.
 - Added a dependency-free MV3 clean-profile smoke command that exercises a mocked Gemini host, panel injection, options initialization, and browser console error handling.
 - Expanded deterministic coverage for Gist transport failures, marketplace/import normalization, options saves, prompt insertion fallbacks, and unsupported clipboard paths.
+- Added accessible modal focus management, keyboard-operable prompt/category controls, visible focus indicators, and an accessible group-rename dialog across both runtime surfaces.
 
 ## [v53.0.0] - 2026-06-27
 

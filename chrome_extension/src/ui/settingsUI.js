@@ -2,7 +2,7 @@
 
 import { state, saveSettings, saveSecrets, clearSecret } from '../state.js';
 import { icons } from '../icons.js';
-import { capitalizeFirstLetter } from '../utils.js';
+import { capitalizeFirstLetter, installModalAccessibility, openAccessibleModal, closeAccessibleModal } from '../utils.js';
 import { presetThemes, FULL_WIDTH_STYLE_ID, FULL_WIDTH_CSS } from '../config.js';
 import { applySettingsAndTheme, renderActionButtons, renderAllPrompts } from './mainPanel.js';
 import { syncFromGist } from '../features/api.js';
@@ -57,11 +57,14 @@ export function buildSettingsUI() {
     const header = document.createElement('div');
     header.className = 'settings-header';
     const headerTitle = document.createElement('h2');
+    headerTitle.id = 'settings-modal-title';
     headerTitle.appendChild(icons.settings.cloneNode(true));
     headerTitle.appendChild(document.createTextNode(' Prompt Panel Settings'));
     const closeBtn = document.createElement('button');
     closeBtn.id = 'close-settings-btn';
+    closeBtn.type = 'button';
     closeBtn.title = 'Close';
+    closeBtn.setAttribute('aria-label', 'Close settings');
     closeBtn.appendChild(icons.close.cloneNode(true));
     header.append(headerTitle, closeBtn);
 
@@ -98,16 +101,18 @@ export function buildSettingsUI() {
     modalContainer.appendChild(panelEl);
     document.body.appendChild(modalContainer);
     state.settingsModal = modalContainer;
+    installModalAccessibility(state.settingsModal, { visibleClass: 'visible' });
+    state.settingsModal.setAttribute('aria-labelledby', headerTitle.id);
 
     // --- Populate and Add Events ---
     populateSettingsPanes();
     applySettingsTheme();
 
-    handleButton.addEventListener('click', () => state.settingsModal.classList.add('visible'));
-    closeBtn.addEventListener('click', () => state.settingsModal.classList.remove('visible'));
+    handleButton.addEventListener('click', () => openAccessibleModal(state.settingsModal));
+    closeBtn.addEventListener('click', () => closeAccessibleModal(state.settingsModal));
     state.settingsModal.addEventListener('click', (e) => {
         if (e.target.id === 'settings-overlay') {
-            state.settingsModal.classList.remove('visible');
+            closeAccessibleModal(state.settingsModal);
         }
     });
 
@@ -347,7 +352,7 @@ function populateSettingsPanes() {
     analyticsBtn.className = 'settings-styled-button';
     analyticsBtn.addEventListener('click', () => {
         populateAnalytics();
-        state.analyticsModal.style.display = 'flex';
+        openAccessibleModal(state.analyticsModal);
     });
     panes.data.appendChild(createSettingRow('data-analytics', 'Usage Analytics', 'View statistics on your prompt usage, favorite tags, and more.', analyticsBtn));
 }

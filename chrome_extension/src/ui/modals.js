@@ -2,7 +2,7 @@
 
 import { state, saveSettings, addHistoryEntry, savePromptRollbackSnapshot } from '../state.js';
 import { icons } from '../icons.js';
-import { createButtonWithIcon, showToast, showDecisionDialog } from '../utils.js';
+import { createButtonWithIcon, showToast, showDecisionDialog, installModalAccessibility, openAccessibleModal, closeAccessibleModal } from '../utils.js';
 import { ensurePromptIDs, renderAllPrompts, savePrompts } from '../features/prompts.js';
 import { updateLockIcon } from './mainPanel.js';
 import { callGeminiAPI } from '../features/api.js';
@@ -25,7 +25,7 @@ export function buildAnalyticsModal() {
     const closeBtn = document.createElement('button');
     closeBtn.className = 'modal-close-btn';
     closeBtn.appendChild(icons.close.cloneNode(true));
-    closeBtn.addEventListener('click', () => modal.style.display = 'none');
+    closeBtn.addEventListener('click', () => closeAccessibleModal(modal));
     modalHeader.append(title, closeBtn);
 
     const modalBody = document.createElement('div');
@@ -34,7 +34,8 @@ export function buildAnalyticsModal() {
 
     modalContent.append(modalHeader, modalBody);
     modal.appendChild(modalContent);
-    modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+    modal.addEventListener('click', e => { if (e.target === modal) closeAccessibleModal(modal); });
+    installModalAccessibility(modal);
     return modal;
 }
 
@@ -120,7 +121,7 @@ export function buildVersionHistoryModal() {
     const closeBtn = document.createElement('button');
     closeBtn.className = 'modal-close-btn';
     closeBtn.appendChild(icons.close.cloneNode(true));
-    closeBtn.addEventListener('click', () => modal.style.display = 'none');
+    closeBtn.addEventListener('click', () => closeAccessibleModal(modal));
     modalHeader.append(title, closeBtn);
 
     const modalBody = document.createElement('div');
@@ -131,12 +132,13 @@ export function buildVersionHistoryModal() {
 
     modalContent.append(modalHeader, modalBody);
     modal.appendChild(modalContent);
-    modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+    modal.addEventListener('click', e => { if (e.target === modal) closeAccessibleModal(modal); });
+    installModalAccessibility(modal);
     return modal;
 }
 
 export function showVersionHistory(promptData) {
-    state.versionHistoryModal.style.display = 'flex';
+    openAccessibleModal(state.versionHistoryModal);
     const title = state.versionHistoryModal.querySelector('#history-modal-title');
     title.textContent = `History for "${promptData.name}"`;
     const list = state.versionHistoryModal.querySelector('#history-list');
@@ -171,7 +173,7 @@ export function showVersionHistory(promptData) {
                 promptData.text = entry.text;
                 savePrompts().then(() => {
                     renderAllPrompts();
-                    state.versionHistoryModal.style.display = 'none';
+                    closeAccessibleModal(state.versionHistoryModal);
                     showToast('Prompt restored!', 2000, 'success');
                 });
             }
@@ -303,6 +305,7 @@ export function buildPromptFormModal() {
     modalBody.appendChild(form);
     modalContent.append(modalHeader, modalBody);
     modal.appendChild(modalContent);
+    installModalAccessibility(modal);
     return modal;
 }
 
@@ -350,7 +353,7 @@ export function showPromptForm(promptToEdit = null, categoryName = '') {
         favoriteInput.checked = false;
         pinInput.checked = false;
     }
-    const closeForm = () => { state.promptFormModal.style.display = 'none'; state.isFormActiveLock = false; updateLockIcon(); };
+    const closeForm = () => { closeAccessibleModal(state.promptFormModal); state.isFormActiveLock = false; updateLockIcon(); };
     form.onsubmit = (e) => {
         e.preventDefault();
         const id = idInput.value || `prompt-${Date.now()}`;
@@ -398,7 +401,7 @@ export function showPromptForm(promptToEdit = null, categoryName = '') {
     state.promptFormModal.querySelector('#cancel-prompt-btn').onclick = closeForm;
     state.promptFormModal.querySelector('.modal-close-btn').onclick = closeForm;
     state.promptFormModal.addEventListener('click', e => { if (e.target === state.promptFormModal) closeForm(); });
-    state.promptFormModal.style.display = 'flex';
+    openAccessibleModal(state.promptFormModal);
     nameInput.focus();
 }
 
@@ -417,7 +420,7 @@ export function buildImportExportModal() {
     closeBtn.className = 'modal-close-btn';
     closeBtn.appendChild(icons.close.cloneNode(true));
     closeBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
+        closeAccessibleModal(modal);
         state.lastFetchedUrl = null;
     });
     modalHeader.append(title, closeBtn);
@@ -576,7 +579,7 @@ export function buildImportExportModal() {
             await Promise.all([savePrompts(), saveSettings()]);
             renderAllPrompts();
             showToast(`Imported ${pendingImport.promptCount} validated prompts.`, 2500, 'success');
-            modal.style.display = 'none';
+            closeAccessibleModal(modal);
             state.lastFetchedUrl = null;
         } catch (error) {
             pendingImport = null;
@@ -588,12 +591,13 @@ export function buildImportExportModal() {
     modalBody.append(exportSection, urlSection, importSection);
     modalContent.append(modalHeader, modalBody);
     modal.appendChild(modalContent);
-    modal.addEventListener('click', e => { if (e.target === modal) { modal.style.display = 'none'; state.lastFetchedUrl = null; } });
+    modal.addEventListener('click', e => { if (e.target === modal) { closeAccessibleModal(modal); state.lastFetchedUrl = null; } });
+    installModalAccessibility(modal);
     return modal;
 }
 
 export function showImportExportModal() {
-    state.importExportModal.style.display = 'flex';
+    openAccessibleModal(state.importExportModal);
 }
 
 export function buildAIEnhancerModal() {
@@ -626,8 +630,9 @@ export function buildAIEnhancerModal() {
     modalBody.append(diffContainer, btnGroup);
     modalContent.append(modalHeader, modalBody);
     modal.appendChild(modalContent);
-    closeBtn.addEventListener('click', () => modal.style.display = 'none');
-    modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+    closeBtn.addEventListener('click', () => closeAccessibleModal(modal));
+    modal.addEventListener('click', e => { if (e.target === modal) closeAccessibleModal(modal); });
+    installModalAccessibility(modal);
     return modal;
 }
 
@@ -636,7 +641,7 @@ export async function showAIEnhancer(promptData) {
         showToast("Please set your Gemini API key in Settings.", 3000, 'error');
         return;
     }
-    state.aiEnhancerModal.style.display = 'flex';
+    openAccessibleModal(state.aiEnhancerModal);
     const diffContainer = state.aiEnhancerModal.querySelector('.diff-container');
     const enhanceBtn = state.aiEnhancerModal.querySelector('.gemini-prompt-panel-button:first-of-type');
     const replaceBtn = state.aiEnhancerModal.querySelector('.gemini-prompt-panel-button:last-of-type');
@@ -674,7 +679,7 @@ export async function showAIEnhancer(promptData) {
             savePrompts().then(() => {
                 renderAllPrompts();
                 showToast('Prompt updated with AI enhancement!', 2000, 'success');
-                state.aiEnhancerModal.style.display = 'none';
+                closeAccessibleModal(state.aiEnhancerModal);
             });
         }
     };

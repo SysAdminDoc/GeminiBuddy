@@ -4,7 +4,7 @@ import { state, saveSettings, saveHistory, addHistoryEntry, savePromptRollbackSn
 import { GM_PROMPTS_KEY, GM_SETTINGS_KEY, LEGACY_PROMPT_KEYS } from '../config.js';
 import { GM_getValue, GM_setValue } from '../GM_wrappers.js';
 import { icons } from '../icons.js';
-import { showToast, capitalizeFirstLetter, showDecisionDialog } from '../utils.js';
+import { showToast, capitalizeFirstLetter, showDecisionDialog, showTextInputDialog } from '../utils.js';
 import { handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd, handleCategoryDragStart, handleCategoryDragOver, handleCategoryDragLeave, handleCategoryDrop, handleCategoryDragEnd } from './dragDrop.js';
 import { fetchDefaultPrompts } from './api.js';
 import { updateHandleHeight, sendPromptToGemini, renderMiniPanel } from '../ui/mainPanel.js';
@@ -168,11 +168,19 @@ export function createCategory(categoryName, prompts, isCollapsible, isMini = fa
 
     if (!isMini && categoryName !== "Favorites" && isRealCategory && !state.settings.groupByTags) {
         const editBtn = document.createElement('button');
+        editBtn.type = 'button';
         editBtn.title = "Rename Group";
+        editBtn.setAttribute('aria-label', `Rename ${categoryName} group`);
         editBtn.appendChild(icons.edit.cloneNode(true));
-        editBtn.addEventListener('click', (e) => {
+        editBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const newName = prompt("Enter new name for the group:", categoryName);
+            const newName = await showTextInputDialog({
+                title: 'Rename prompt group',
+                message: 'Choose a new name for this prompt group.',
+                label: 'Group name',
+                initialValue: categoryName,
+                confirmLabel: 'Rename'
+            });
             if (newName && newName.trim() !== "" && newName !== categoryName) {
                 if (state.currentPrompts[newName]) {
                     showToast("A group with this name already exists.", 3000, 'error');
@@ -195,12 +203,16 @@ export function createCategory(categoryName, prompts, isCollapsible, isMini = fa
     }
 
     if (isCollapsible) {
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.setAttribute('aria-expanded', String(!categoryDiv.classList.contains('collapsed')));
         const icon = icons.chevronDown.cloneNode(true);
         icon.classList.add('category-toggle-icon');
         controls.appendChild(icon);
         header.addEventListener('click', (e) => {
             if (e.target.closest('.category-header-controls')) return;
             categoryDiv.classList.toggle('collapsed');
+            header.setAttribute('aria-expanded', String(!categoryDiv.classList.contains('collapsed')));
             if (!isMini) {
                 const isCollapsed = categoryDiv.classList.contains('collapsed');
                 const categoryId = categoryDiv.dataset.categoryName;
@@ -213,6 +225,13 @@ export function createCategory(categoryName, prompts, isCollapsible, isMini = fa
                 }
                 GM_setValue(GM_SETTINGS_KEY, state.settings); // Save without toast
                 updateHandleHeight();
+            }
+        });
+        header.addEventListener('keydown', (e) => {
+            if (e.target.closest('.category-header-controls')) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                header.click();
             }
         });
     }
@@ -232,8 +251,10 @@ export function addPromptButtonToPanel(promptData, container, categoryName, isMi
     wrapper.className = 'prompt-button-wrapper';
     wrapper.dataset.promptId = promptData.id;
 
-    const btn = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'prompt-button';
+    btn.setAttribute('aria-label', `Use prompt: ${promptData.name}`);
 
     if (isMini) {
         btn.addEventListener('click', () => {
@@ -261,29 +282,38 @@ export function addPromptButtonToPanel(promptData, container, categoryName, isMi
     if (!isMini) {
         const controls = document.createElement('div');
         controls.className = 'prompt-button-controls';
+        controls.setAttribute('aria-label', 'Prompt actions');
 
         const historyBtn = document.createElement('button');
+        historyBtn.type = 'button';
         historyBtn.title = "View History";
+        historyBtn.setAttribute('aria-label', 'View History');
         historyBtn.appendChild(icons.history.cloneNode(true));
         historyBtn.addEventListener('click', () => showVersionHistory(promptData));
         controls.appendChild(historyBtn);
 
         if (state.settings.enableAIenhancer) {
             const aiBtn = document.createElement('button');
+            aiBtn.type = 'button';
             aiBtn.title = "Enhance with AI";
+            aiBtn.setAttribute('aria-label', 'Enhance with AI');
             aiBtn.classList.add('ai-btn');
             aiBtn.appendChild(icons.sparkle.cloneNode(true));
             aiBtn.addEventListener('click', () => showAIEnhancer(promptData));
             controls.appendChild(aiBtn);
         }
         const pinBtn = document.createElement('button');
+        pinBtn.type = 'button';
         pinBtn.title = "Pin to Top"; pinBtn.classList.add('pin-btn');
+        pinBtn.setAttribute('aria-label', 'Pin to Top');
         const isPinned = promptData.pinned;
         pinBtn.appendChild((isPinned ? icons.pin : icons.pinOutline).cloneNode(true));
         if (isPinned) pinBtn.classList.add('pinned');
         pinBtn.addEventListener('click', () => { promptData.pinned = !promptData.pinned; savePrompts().then(renderAllPrompts); });
         const favoriteBtn = document.createElement('button');
+        favoriteBtn.type = 'button';
         favoriteBtn.title = "Favorite"; favoriteBtn.classList.add('favorite-btn');
+        favoriteBtn.setAttribute('aria-label', 'Favorite');
         const isFavorited = state.settings.favorites.includes(promptData.id);
         favoriteBtn.appendChild((isFavorited ? icons.star : icons.starOutline).cloneNode(true));
         if (isFavorited) favoriteBtn.classList.add('favorited');
@@ -296,13 +326,17 @@ export function addPromptButtonToPanel(promptData, container, categoryName, isMi
             GM_setValue(GM_SETTINGS_KEY, state.settings).then(renderAllPrompts);
         });
         const editBtn = document.createElement('button');
+        editBtn.type = 'button';
         editBtn.title = "Edit"; editBtn.appendChild(icons.edit.cloneNode(true));
+        editBtn.setAttribute('aria-label', 'Edit prompt');
         editBtn.addEventListener('click', () => {
             let originalCategory = findPromptCategory(promptData.id);
             showPromptForm(promptData, originalCategory);
         });
         const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
         deleteBtn.title = "Delete"; deleteBtn.appendChild(icons.trash.cloneNode(true));
+        deleteBtn.setAttribute('aria-label', 'Delete prompt');
         deleteBtn.addEventListener('click', async () => {
             const shouldDelete = await showDecisionDialog({
                 title: 'Delete prompt?',
@@ -328,10 +362,10 @@ export function addPromptButtonToPanel(promptData, container, categoryName, isMi
             }
         });
         controls.append(pinBtn, favoriteBtn, editBtn, deleteBtn);
-        btn.appendChild(controls);
+        wrapper.appendChild(controls);
     }
 
-    wrapper.appendChild(btn);
+    wrapper.insertBefore(btn, wrapper.firstChild);
 
     if (!isMini && state.settings.showTags && promptData.tags) {
         const tagsContainer = document.createElement('div');

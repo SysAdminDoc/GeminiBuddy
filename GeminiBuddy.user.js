@@ -621,10 +621,12 @@
         .prompt-button-wrapper { display: flex; flex-direction: column; background: #3a3a3e; border: 1px solid var(--panel-border); border-radius: 6px; cursor: grab; transition: box-shadow .2s, transform .2s; }
         .prompt-button-wrapper.dragging { opacity: 0.5; background: #4a4a4e; }
         .prompt-button-wrapper.drag-over { border-bottom: 2px solid var(--pin-color); }
-        .prompt-button { position:relative; display: flex; align-items: center; padding: 8px; gap: 8px; }
+        .prompt-button { position:relative; display: flex; align-items: center; width: 100%; padding: 8px; gap: 8px; background: transparent; border: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+        .prompt-button:focus-visible, .prompt-category-header:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #8ab4f8; outline-offset: 2px; box-shadow: 0 0 0 2px #1a1a1a; }
         .prompt-button .prompt-button-name { flex-grow: 1; text-align: left; font-weight: 500; font-size: var(--base-font-size); }
         .prompt-button-controls { display: none; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); gap: 2px; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 2px; align-items: center; }
         .prompt-button-wrapper:hover .prompt-button-controls { display: flex; }
+        .prompt-button-wrapper:focus-within .prompt-button-controls { display: flex; }
         .prompt-button-controls button { background: transparent; border: none; cursor: pointer; padding: 3px; border-radius: 50%; display:flex; align-items:center; color: var(--panel-text); }
         .prompt-button-controls button:hover { background-color: rgba(255,255,255,0.15); }
         .favorite-btn.favorited, .pin-btn.pinned { color: var(--favorite-color); }
@@ -746,6 +748,161 @@
         .prompt-preview-tooltip { position: fixed; z-index: 10002; max-width: 350px; max-height: 200px; overflow-y: auto; background: var(--panel-bg); color: var(--panel-text); border: 1px solid var(--panel-border); border-radius: 6px; padding: 10px 12px; font-size: calc(var(--base-font-size) - 1px); line-height: 1.5; white-space: pre-wrap; word-break: break-word; box-shadow: 0 4px 16px rgba(0,0,0,0.4); pointer-events: none; opacity: 0; transition: opacity 0.15s ease-in; }
         .prompt-preview-tooltip.visible { opacity: 1; }
     `);
+    }
+
+    // --- MODAL ACCESSIBILITY ---
+    function getModalFocusableElements(modal) {
+        return Array.from(modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+    }
+
+    function installModalAccessibility(modal, { destructive = false } = {}) {
+        if (!modal || modal.dataset.geminiBuddyAccessible === 'true') return modal;
+        modal.dataset.geminiBuddyAccessible = 'true';
+        modal.dataset.destructive = destructive ? 'true' : 'false';
+        modal.setAttribute('role', destructive ? 'alertdialog' : 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-hidden', 'true');
+        const title = modal.querySelector('.modal-title');
+        if (title) {
+            if (!title.id) title.id = `${modal.id || 'geminibuddy-modal'}-title-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            modal.setAttribute('aria-labelledby', title.id);
+        }
+        const content = modal.querySelector('.modal-content');
+        if (content && !content.hasAttribute('tabindex')) content.setAttribute('tabindex', '-1');
+        modal.querySelectorAll('.modal-close-btn').forEach(button => {
+            if (!button.type) button.type = 'button';
+            if (!button.getAttribute('aria-label')) button.setAttribute('aria-label', 'Close dialog');
+        });
+        let previousFocus = null;
+
+        modal._geminiBuddyOpen = () => {
+            previousFocus = document.activeElement;
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+            const firstFocusable = getModalFocusableElements(modal)[0] || content;
+            if (firstFocusable && typeof firstFocusable.focus === 'function') firstFocusable.focus();
+        };
+        modal._geminiBuddyClose = () => {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            if (previousFocus && previousFocus.isConnected && typeof previousFocus.focus === 'function') previousFocus.focus();
+            previousFocus = null;
+        };
+        modal.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !destructive) {
+                event.preventDefault();
+                modal._geminiBuddyClose();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = getModalFocusableElements(modal);
+            if (!focusable.length) {
+                event.preventDefault();
+                content?.focus();
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+        modal.addEventListener('click', event => {
+            if (event.target === modal && !destructive) modal._geminiBuddyClose();
+        });
+        return modal;
+    }
+
+    function openAccessibleModal(modal) {
+        if (modal?._geminiBuddyOpen) modal._geminiBuddyOpen();
+        else if (modal) modal.style.display = 'flex';
+    }
+
+    function closeAccessibleModal(modal) {
+        if (modal?._geminiBuddyClose) modal._geminiBuddyClose();
+        else if (modal) modal.style.display = 'none';
+    }
+
+    function showTextInputDialog({ title, message = '', label = 'Value', initialValue = '', confirmLabel = 'Save', cancelLabel = 'Cancel' }) {
+        return new Promise(resolve => {
+            const overlay = document.createElement('div');
+            overlay.id = 'geminibuddy-text-input-dialog';
+            overlay.className = 'modal-overlay';
+            const content = document.createElement('div');
+            content.className = 'modal-content';
+            const header = document.createElement('div');
+            header.className = 'modal-header';
+            const heading = document.createElement('h2');
+            heading.className = 'modal-title';
+            heading.textContent = title;
+            const closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'modal-close-btn';
+            closeButton.setAttribute('aria-label', 'Close dialog');
+            closeButton.appendChild(icons.close.cloneNode(true));
+            header.append(heading, closeButton);
+            const body = document.createElement('div');
+            body.className = 'modal-body';
+            if (message) {
+                const copy = document.createElement('p');
+                copy.textContent = message;
+                body.appendChild(copy);
+            }
+            const inputLabel = document.createElement('label');
+            inputLabel.htmlFor = 'geminibuddy-text-input';
+            inputLabel.textContent = label;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = 'geminibuddy-text-input';
+            input.value = initialValue;
+            const actions = document.createElement('div');
+            actions.className = 'button-group';
+            const cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.className = 'gemini-prompt-panel-button';
+            cancelButton.textContent = cancelLabel;
+            const saveButton = document.createElement('button');
+            saveButton.type = 'button';
+            saveButton.className = 'gemini-prompt-panel-button copy-btn';
+            saveButton.textContent = confirmLabel;
+            actions.append(cancelButton, saveButton);
+            body.append(inputLabel, input, actions);
+            content.append(header, body);
+            overlay.appendChild(content);
+            installModalAccessibility(overlay);
+
+            let settled = false;
+            const finish = value => {
+                if (settled) return;
+                settled = true;
+                closeAccessibleModal(overlay);
+                overlay.remove();
+                resolve(value);
+            };
+            saveButton.addEventListener('click', () => finish(input.value.trim()));
+            cancelButton.addEventListener('click', () => finish(null));
+            closeButton.addEventListener('click', () => finish(null));
+            input.addEventListener('keydown', event => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    finish(input.value.trim());
+                }
+            });
+            overlay.addEventListener('keydown', event => {
+                if (event.key === 'Escape') finish(null);
+            });
+            overlay.addEventListener('click', event => {
+                if (event.target === overlay) finish(null);
+            });
+            document.body.appendChild(overlay);
+            openAccessibleModal(overlay);
+            input.focus();
+            input.select();
+        });
     }
 
     // --- MODAL BUILDERS ---
@@ -889,6 +1046,7 @@
         modalBody.appendChild(form);
         modalContent.append(modalHeader, modalBody);
         modal.appendChild(modalContent);
+        installModalAccessibility(modal);
         return modal;
     }
     function buildSettingsModal() {
@@ -911,6 +1069,7 @@
         modalBody.appendChild(form);
         modalContent.append(modalHeader, modalBody);
         modal.appendChild(modalContent);
+        installModalAccessibility(modal);
         return modal;
     }
     function buildImportExportModal() {
@@ -933,6 +1092,7 @@
         // The main script will populate the body with buttons
         modalContent.append(modalHeader, modalBody);
         modal.appendChild(modalContent);
+        installModalAccessibility(modal);
         return modal;
     }
     function buildAIEnhancerModal() {
@@ -962,6 +1122,7 @@
         modalBody.append(diffContainer, btnGroup);
         modalContent.append(modalHeader, modalBody);
         modal.appendChild(modalContent);
+        installModalAccessibility(modal);
         return modal;
     }
     function buildAnalyticsModal() {
@@ -984,6 +1145,7 @@
         modalBody.id = 'analytics-body';
         modalContent.append(modalHeader, modalBody);
         modal.appendChild(modalContent);
+        installModalAccessibility(modal);
         return modal;
     }
     function buildVersionHistoryModal() {
@@ -1008,6 +1170,7 @@
         modalBody.appendChild(list);
         modalContent.append(modalHeader, modalBody);
         modal.appendChild(modalContent);
+        installModalAccessibility(modal);
         return modal;
     }
 
@@ -1069,14 +1232,9 @@
 
     function showDecisionDialog({ title, message, confirmLabel = 'Continue', cancelLabel = 'Cancel', destructive = false }) {
         return new Promise(resolve => {
-            const previousFocus = document.activeElement;
             const overlay = document.createElement('div');
             overlay.id = 'geminibuddy-decision-dialog';
             overlay.className = 'modal-overlay';
-            overlay.style.display = 'flex';
-            overlay.setAttribute('role', 'dialog');
-            overlay.setAttribute('aria-modal', 'true');
-            overlay.setAttribute('aria-labelledby', 'geminibuddy-decision-title');
 
             const content = document.createElement('div');
             content.className = 'modal-content';
@@ -1106,27 +1264,29 @@
             actions.append(cancelButton, confirmButton);
             content.append(header, body, actions);
             overlay.appendChild(content);
+            installModalAccessibility(overlay, { destructive });
+            overlay.setAttribute('aria-labelledby', 'geminibuddy-decision-title');
 
             let settled = false;
             const finish = result => {
                 if (settled) return;
                 settled = true;
                 document.removeEventListener('keydown', onKeyDown);
+                closeAccessibleModal(overlay);
                 overlay.remove();
-                if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
                 resolve(result);
             };
             const onKeyDown = event => {
-                if (event.key === 'Escape') finish(false);
+                if (event.key === 'Escape' && !destructive) finish(false);
             };
             cancelButton.addEventListener('click', () => finish(false));
             confirmButton.addEventListener('click', () => finish(true));
             overlay.addEventListener('click', event => {
-                if (event.target === overlay) finish(false);
+                if (event.target === overlay && !destructive) finish(false);
             });
             document.addEventListener('keydown', onKeyDown);
             document.body.appendChild(overlay);
-            confirmButton.focus();
+            openAccessibleModal(overlay);
         });
     }
 
@@ -1134,9 +1294,6 @@
         const overlay = document.createElement('div');
         overlay.id = 'geminibuddy-fatal-dialog';
         overlay.className = 'modal-overlay';
-        overlay.style.display = 'flex';
-        overlay.setAttribute('role', 'alertdialog');
-        overlay.setAttribute('aria-modal', 'true');
         const content = document.createElement('div');
         content.className = 'modal-content';
         const heading = document.createElement('h2');
@@ -1153,9 +1310,10 @@
         body.append(message, closeButton);
         content.append(heading, body);
         overlay.appendChild(content);
-        closeButton.addEventListener('click', () => overlay.remove());
+        installModalAccessibility(overlay, { destructive: false });
+        closeButton.addEventListener('click', () => { closeAccessibleModal(overlay); overlay.remove(); });
         document.body.appendChild(overlay);
-        closeButton.focus();
+        openAccessibleModal(overlay);
         if (error) console.error('GeminiBuddy fatal dialog:', error);
     }
     function showCountdownToast(message, duration = 5000) {
@@ -1401,8 +1559,10 @@
         });
         wrapper.addEventListener('mouseleave', hidePreview);
 
-        const btn = document.createElement('div');
+        const btn = document.createElement('button');
+        btn.type = 'button';
         btn.className = 'prompt-button';
+        btn.setAttribute('aria-label', `Use prompt: ${promptData.name}`);
 
         if (isMini) {
             btn.addEventListener('click', () => {
@@ -1416,8 +1576,7 @@
             wrapper.addEventListener('dragleave', handleDragLeave);
             wrapper.addEventListener('drop', handleDrop);
             wrapper.addEventListener('dragend', handleDragEnd);
-            btn.addEventListener('click', (e) => {
-                if (e.target.closest('.prompt-button-controls')) return;
+            btn.addEventListener('click', () => {
                 sendPromptToGemini(promptData, promptData.autoSend);
             });
         }
@@ -1443,35 +1602,46 @@
         if (!isMini) {
             const controls = document.createElement('div');
             controls.className = 'prompt-button-controls';
+            controls.setAttribute('aria-label', 'Prompt actions');
 
             const historyBtn = document.createElement('button');
+            historyBtn.type = 'button';
             historyBtn.title = "View History";
+            historyBtn.setAttribute('aria-label', 'View History');
             historyBtn.appendChild(icons.history.cloneNode(true));
             historyBtn.addEventListener('click', () => showVersionHistory(promptData));
             controls.appendChild(historyBtn);
 
             const shareBtn = document.createElement('button');
+            shareBtn.type = 'button';
             shareBtn.title = "Copy Share Link";
+            shareBtn.setAttribute('aria-label', 'Copy Share Link');
             shareBtn.appendChild(icons.webLink.cloneNode(true));
             shareBtn.addEventListener('click', () => copyShareLinkForPrompt(promptData, categoryName));
             controls.appendChild(shareBtn);
 
             if (settings.enableAIenhancer) {
                 const aiBtn = document.createElement('button');
+                aiBtn.type = 'button';
                 aiBtn.title = "Enhance with AI";
+                aiBtn.setAttribute('aria-label', 'Enhance with AI');
                 aiBtn.classList.add('ai-btn');
                 aiBtn.appendChild(icons.sparkle.cloneNode(true));
                 aiBtn.addEventListener('click', () => showAIEnhancer(promptData));
                 controls.appendChild(aiBtn);
             }
             const pinBtn = document.createElement('button');
+            pinBtn.type = 'button';
             pinBtn.title = "Pin to Top"; pinBtn.classList.add('pin-btn');
+            pinBtn.setAttribute('aria-label', 'Pin to Top');
             const isPinned = promptData.pinned;
             pinBtn.appendChild((isPinned ? icons.pin : icons.pinOutline).cloneNode(true));
             if(isPinned) pinBtn.classList.add('pinned');
             pinBtn.addEventListener('click', () => { promptData.pinned = !promptData.pinned; savePrompts(); renderAllPrompts(); });
             const favoriteBtn = document.createElement('button');
+            favoriteBtn.type = 'button';
             favoriteBtn.title = "Favorite"; favoriteBtn.classList.add('favorite-btn');
+            favoriteBtn.setAttribute('aria-label', 'Favorite');
             const isFavorited = settings.favorites.includes(promptData.id);
             favoriteBtn.appendChild((isFavorited ? icons.star : icons.starOutline).cloneNode(true));
             if(isFavorited) favoriteBtn.classList.add('favorited');
@@ -1484,13 +1654,17 @@
                 saveSettings().then(renderAllPrompts);
             });
             const editBtn = document.createElement('button');
+            editBtn.type = 'button';
             editBtn.title = "Edit"; editBtn.appendChild(icons.edit.cloneNode(true));
+            editBtn.setAttribute('aria-label', 'Edit prompt');
             editBtn.addEventListener('click', () => {
                 let originalCategory = findPromptCategory(promptData.id);
                 showPromptForm(promptData, originalCategory);
             });
             const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
             deleteBtn.title = "Delete"; deleteBtn.appendChild(icons.trash.cloneNode(true));
+            deleteBtn.setAttribute('aria-label', 'Delete prompt');
             deleteBtn.addEventListener('click', async () => {
                 const shouldDelete = await showDecisionDialog({
                     title: 'Delete prompt?',
@@ -1516,10 +1690,10 @@
                 }
             });
             controls.append(pinBtn, favoriteBtn, editBtn, deleteBtn);
-            btn.appendChild(controls);
+            wrapper.appendChild(controls);
         }
 
-        wrapper.appendChild(btn);
+        wrapper.insertBefore(btn, wrapper.firstChild);
 
         if (!isMini && settings.showTags && promptData.tags) {
             const tagsContainer = document.createElement('div');
@@ -1575,11 +1749,19 @@
 
         if (!isMini && categoryName !== "Favorites" && isRealCategory && !settings.groupByTags) {
             const editBtn = document.createElement('button');
+            editBtn.type = 'button';
             editBtn.title = "Rename Group";
+            editBtn.setAttribute('aria-label', `Rename ${categoryName} group`);
             editBtn.appendChild(icons.edit.cloneNode(true));
-            editBtn.addEventListener('click', (e) => {
+            editBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const newName = prompt("Enter new name for the group:", categoryName);
+                const newName = await showTextInputDialog({
+                    title: 'Rename prompt group',
+                    message: 'Choose a new name for this prompt group.',
+                    label: 'Group name',
+                    initialValue: categoryName,
+                    confirmLabel: 'Rename'
+                });
                 if (newName && newName.trim() !== "" && newName !== categoryName) {
                     if (currentPrompts[newName]) {
                         showToast("A group with this name already exists.", 3000, 'error');
@@ -1602,12 +1784,16 @@
         }
 
         if (isCollapsible) {
+            header.setAttribute('role', 'button');
+            header.setAttribute('tabindex', '0');
+            header.setAttribute('aria-expanded', String(!categoryDiv.classList.contains('collapsed')));
             const icon = icons.chevronDown.cloneNode(true);
             icon.classList.add('category-toggle-icon');
             controls.appendChild(icon);
             header.addEventListener('click', (e) => {
                 if(e.target.closest('.category-header-controls')) return;
                 categoryDiv.classList.toggle('collapsed');
+                header.setAttribute('aria-expanded', String(!categoryDiv.classList.contains('collapsed')));
                 if (!isMini) {
                     const isCollapsed = categoryDiv.classList.contains('collapsed');
                     const categoryId = categoryDiv.dataset.categoryName;
@@ -1620,6 +1806,13 @@
                     }
                     saveSettings();
                     updateHandleHeight();
+                }
+            });
+            header.addEventListener('keydown', (e) => {
+                if (e.target.closest('.category-header-controls')) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    header.click();
                 }
             });
         }
@@ -2236,7 +2429,7 @@
             favoriteInput.checked = false;
             pinInput.checked = false;
         }
-        const closeForm = () => { promptFormModal.style.display = 'none'; isFormActiveLock = false; updateLockIcon(); };
+        const closeForm = () => { closeAccessibleModal(promptFormModal); isFormActiveLock = false; updateLockIcon(); };
         form.onsubmit = (e) => {
             e.preventDefault();
             const id = idInput.value || `prompt-${Date.now()}`;
@@ -2287,7 +2480,7 @@
         promptFormModal.querySelector('#cancel-prompt-btn').onclick = closeForm;
         promptFormModal.querySelector('.modal-close-btn').onclick = closeForm;
         promptFormModal.addEventListener('click', e => { if (e.target === promptFormModal) closeForm(); });
-        promptFormModal.style.display = 'flex';
+        openAccessibleModal(promptFormModal);
         nameInput.focus();
     }
     const PROMPT_EXPORT_SCHEMA_VERSION = 1;
@@ -2495,10 +2688,10 @@
         importSection.append(importLabel, importTextarea, fileInput, importPreview, btnGroup);
 
         modalBody.append(exportSection, urlSection, importSection);
-        importExportModal.style.display = 'flex';
+        openAccessibleModal(importExportModal);
 
         const closeBtn = importExportModal.querySelector('.modal-close-btn');
-        const closeModal = () => { importExportModal.style.display = 'none'; lastFetchedUrl = null; };
+        const closeModal = () => { closeAccessibleModal(importExportModal); lastFetchedUrl = null; };
         closeBtn.onclick = closeModal;
         importExportModal.addEventListener('click', e => { if (e.target === importExportModal) closeModal(); });
 
@@ -2612,7 +2805,7 @@
         const replaceBtn = createButtonWithIcon('Accept & Replace', null);
         btnGroup.append(enhanceBtn, replaceBtn);
 
-        aiEnhancerModal.style.display = 'flex';
+        openAccessibleModal(aiEnhancerModal);
         const diffContainer = aiEnhancerModal.querySelector('.diff-container');
         const closeBtn = aiEnhancerModal.querySelector('.modal-close-btn');
 
@@ -2653,16 +2846,16 @@
                 savePrompts().then(() => {
                     renderAllPrompts();
                     showToast('Prompt updated with AI enhancement!', 2000, 'success');
-                    aiEnhancerModal.style.display = 'none';
+                    closeAccessibleModal(aiEnhancerModal);
                 });
             }
         };
 
-        closeBtn.onclick = () => aiEnhancerModal.style.display = 'none';
-        aiEnhancerModal.addEventListener('click', e => { if (e.target === aiEnhancerModal) aiEnhancerModal.style.display = 'none'; });
+        closeBtn.onclick = () => closeAccessibleModal(aiEnhancerModal);
+        aiEnhancerModal.addEventListener('click', e => { if (e.target === aiEnhancerModal) closeAccessibleModal(aiEnhancerModal); });
     }
     function showVersionHistory(promptData) {
-        versionHistoryModal.style.display = 'flex';
+        openAccessibleModal(versionHistoryModal);
         const title = versionHistoryModal.querySelector('#history-modal-title');
         title.textContent = `History for "${promptData.name}"`;
         const list = versionHistoryModal.querySelector('#history-list');
@@ -2697,7 +2890,7 @@
                     promptData.text = entry.text;
                     savePrompts().then(() => {
                         renderAllPrompts();
-                        versionHistoryModal.style.display = 'none';
+                        closeAccessibleModal(versionHistoryModal);
                         showToast('Prompt restored!', 2000, 'success');
                     });
                 }
@@ -2895,16 +3088,16 @@
             settingsBtn.addEventListener('click', () => {
                  const settingsForm = settingsModal.querySelector('.modal-body > form');
                  populateSettingsModal(settingsForm);
-                 settingsModal.style.display = 'flex';
-                 settingsModal.querySelector('.modal-close-btn').onclick = () => settingsModal.style.display = 'none';
-                 settingsModal.addEventListener('click', e => { if (e.target === settingsModal) settingsModal.style.display = 'none'; });
+                 openAccessibleModal(settingsModal);
+                 settingsModal.querySelector('.modal-close-btn').onclick = () => closeAccessibleModal(settingsModal);
+                 settingsModal.addEventListener('click', e => { if (e.target === settingsModal) closeAccessibleModal(settingsModal); });
             });
 
             analyticsBtn.addEventListener('click', () => {
                 populateAnalytics();
-                analyticsModal.style.display = 'flex';
-                analyticsModal.querySelector('.modal-close-btn').onclick = () => analyticsModal.style.display = 'none';
-                analyticsModal.addEventListener('click', e => { if (e.target === analyticsModal) analyticsModal.style.display = 'none'; });
+                openAccessibleModal(analyticsModal);
+                analyticsModal.querySelector('.modal-close-btn').onclick = () => closeAccessibleModal(analyticsModal);
+                analyticsModal.addEventListener('click', e => { if (e.target === analyticsModal) closeAccessibleModal(analyticsModal); });
             });
             arrowLeftBtn.addEventListener('click', () => { settings.position = 'left'; saveSettings(); applySettingsAndTheme(); });
             arrowRightBtn.addEventListener('click', () => { settings.position = 'right'; saveSettings(); applySettingsAndTheme(); });
@@ -3428,7 +3621,6 @@
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
-            overlay.style.display = 'flex';
             const content = document.createElement('div');
             content.className = 'modal-content';
             content.style.maxWidth = '450px';
@@ -3438,7 +3630,9 @@
             title.className = 'modal-title';
             title.textContent = 'Fill in Variables';
             const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
             closeBtn.className = 'modal-close-btn';
+            closeBtn.setAttribute('aria-label', 'Close variable dialog');
             closeBtn.appendChild(icons.close.cloneNode(true));
             header.append(title, closeBtn);
             const body = document.createElement('div');
@@ -3460,20 +3654,23 @@
             btnGroup.className = 'button-group';
             btnGroup.style.marginTop = '15px';
             const submitBtn = document.createElement('button');
+            submitBtn.type = 'button';
             submitBtn.className = 'gemini-prompt-panel-button copy-btn';
             submitBtn.textContent = 'Insert Prompt';
             const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
             cancelBtn.className = 'gemini-prompt-panel-button';
             cancelBtn.textContent = 'Cancel';
             btnGroup.append(submitBtn, cancelBtn);
             content.append(header, body, btnGroup);
             overlay.appendChild(content);
-            document.body.appendChild(overlay);
 
             const cleanup = (result) => {
+                closeAccessibleModal(overlay);
                 overlay.remove();
                 resolve(result);
             };
+            installModalAccessibility(overlay);
             submitBtn.addEventListener('click', () => {
                 const values = {};
                 for (const [varName, input] of Object.entries(inputs)) {
@@ -3484,6 +3681,9 @@
             cancelBtn.addEventListener('click', () => cleanup(null));
             closeBtn.addEventListener('click', () => cleanup(null));
             overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(null); });
+            overlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') cleanup(null); });
+            document.body.appendChild(overlay);
+            openAccessibleModal(overlay);
             // Focus first input
             const firstInput = Object.values(inputs)[0];
             if (firstInput) setTimeout(() => firstInput.focus(), 50);
