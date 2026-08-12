@@ -8,6 +8,8 @@
   },
   "permissions": [
     "storage",
+    "sidePanel",
+    "activeTab",
     "clipboardRead",
     "clipboardWrite"
   ],
@@ -40,6 +42,12 @@
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
+  },
+  "action": {
+    "default_title": "Open GeminiBuddy side panel"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
   },
   "browser_specific_settings": {
     "gecko": {

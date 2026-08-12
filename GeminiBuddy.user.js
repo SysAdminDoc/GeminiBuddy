@@ -4429,6 +4429,44 @@
         }
     }
 
+    if (globalThis.chrome?.runtime?.onMessage?.addListener) {
+        globalThis.chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+            if (message?.type === 'geminibuddy-insert-prompt') {
+                insertPromptIntoGemini(String(message.prompt || ''), message.autoSend === true)
+                    .then(ok => sendResponse({ ok: ok === true }))
+                    .catch(error => sendResponse({ ok: false, error: error.message }));
+                return true;
+            }
+            if (message?.type === 'geminibuddy-switch-profile') {
+                switchPromptProfile(message.profileId)
+                    .then(profile => {
+                        if (panel) {
+                            renderAllPrompts();
+                            renderMiniPanel();
+                            applySettingsAndTheme();
+                        }
+                        sendResponse({ ok: true, profile: profile?.name || '' });
+                    })
+                    .catch(error => sendResponse({ ok: false, error: error.message }));
+                return true;
+            }
+            if (message?.type === 'geminibuddy-refresh-profile') {
+                initializePromptProfiles()
+                    .then(() => {
+                        if (panel) {
+                            renderAllPrompts();
+                            renderMiniPanel();
+                            applySettingsAndTheme();
+                        }
+                        sendResponse({ ok: true });
+                    })
+                    .catch(error => sendResponse({ ok: false, error: error.message }));
+                return true;
+            }
+            return false;
+        });
+    }
+
     if (window.__GEMINIBUDDY_TEST_HOOKS__) {
         Object.assign(window.__GEMINIBUDDY_TEST_HOOKS__, {
             parseChainStepsInput,

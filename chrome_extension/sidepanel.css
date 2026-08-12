@@ -1,0 +1,45 @@
+:root {
+  color-scheme: dark;
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-strong: #1f2937;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --danger: #f85149;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-width: 280px; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
+.side-panel { padding: 14px; }
+.panel-header, .section-heading, .prompt-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.panel-header { margin-bottom: 14px; }
+.eyebrow { margin: 0; color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+h1, h2 { margin: 0; line-height: 1.2; }
+h1 { font-size: 20px; }
+h2 { font-size: 14px; }
+.field-label { display: block; margin: 10px 0 4px; color: var(--muted); font-size: 12px; }
+input, select, textarea, button { width: 100%; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; }
+input, select, textarea { padding: 8px; }
+button { padding: 7px 8px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#refresh-button { width: auto; font-size: 18px; }
+.editor { margin: 16px 0; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel-strong); }
+.editor .section-heading { margin-bottom: 6px; }
+.editor .section-heading button { width: auto; }
+.primary { margin-top: 10px; background: #1f6feb; border-color: #388bfd; }
+.status { min-height: 18px; margin: 8px 0; color: var(--muted); }
+.status.error { color: var(--danger); }
+.prompt-list { display: grid; gap: 8px; }
+.prompt-group { display: grid; gap: 5px; }
+.group-title { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+.prompt-card { padding: 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); }
+.prompt-use { border: 0; padding: 0; background: transparent; text-align: left; }
+.prompt-name { display: block; font-weight: 600; }
+.prompt-preview { display: block; margin-top: 3px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prompt-actions { margin-top: 7px; }
+.prompt-actions button { width: auto; flex: 1; font-size: 11px; }
+.prompt-actions .delete { color: var(--danger); }

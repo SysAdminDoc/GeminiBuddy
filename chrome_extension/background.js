@@ -5,6 +5,10 @@ importScripts('network-policy.js');
 
   const policy = globalThis.GeminiBuddyNetworkPolicy;
 
+  if (chrome.sidePanel) {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+  }
+
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type !== 'geminibuddy-request-origin-permission' || !policy) return false;
 

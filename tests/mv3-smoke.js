@@ -326,9 +326,22 @@ async function main() {
       throw new Error(`Options page did not initialize: ${JSON.stringify(optionsState)}`);
     }
 
+    await pageSession.send('Page.navigate', { url: `chrome-extension://${extensionId}/sidepanel.html` });
+    await waitForExpression(pageSession, "(document.querySelector('#profile-select')?.options.length || 0) > 0 || Boolean(document.querySelector('#status.error'))", 10000);
+    const sidePanelState = await evaluate(pageSession, `({
+      title: document.title,
+      profileOptions: document.querySelector('#profile-select')?.options.length || 0,
+      promptList: Boolean(document.querySelector('#prompt-list')),
+      editor: Boolean(document.querySelector('#prompt-text')),
+      status: document.querySelector('#status')?.textContent || ''
+    })`);
+    if (!sidePanelState.promptList || !sidePanelState.editor || sidePanelState.profileOptions < 1) {
+      throw new Error(`Side panel did not initialize: ${JSON.stringify(sidePanelState)}`);
+    }
+
     await wait(500);
     if (consoleErrors.length) throw new Error(`Browser console errors:\n${consoleErrors.join('\n')}`);
-    console.log(`MV3 smoke passed: panel, prompt fixture, and options initialized in a clean profile (${extensionId}).`);
+    console.log(`MV3 smoke passed: panel, prompt fixture, options, and side panel initialized in a clean profile (${extensionId}).`);
   } finally {
     pageSession?.close();
     if (browserProcess.pid) {

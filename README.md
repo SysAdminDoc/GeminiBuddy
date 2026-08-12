@@ -87,7 +87,7 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
 ### **MV3 Extension Build**
 
   * **What it does:** Builds a Chrome/Firefox MV3 extension package from the userscript with GM compatibility shims, an options page, and `chrome.storage.sync` prompt storage.
-  * **How it improves the target interface:** Users can install GeminiBuddy as an unpacked extension or ZIP package and keep prompts synced across browser profiles.
+  * **How it improves the target interface:** Users can install GeminiBuddy as an unpacked extension or ZIP package, keep prompts synced across browser profiles, and open a native Chrome side panel for browsing and editing prompts.
 
 ### **Draggable Prompts**
 
@@ -130,6 +130,7 @@ The **Gemini Prompt Panel** is a browser extension that enhances the user experi
       * Run `node chrome_extension/build-extension.js`.
       * Run `node tests/mv3-smoke.js` to load the unpacked build in a clean Chromium profile and exercise a mocked Gemini host. Set `GEMINIBUDDY_CHROME` to a Chromium executable when the system browser blocks unpacked-extension flags.
       * Load `chrome_extension/dist/geminibuddy-mv3` as an unpacked extension, or use the generated ZIP in `chrome_extension/dist`.
+      * In Chrome or Edge, click the GeminiBuddy toolbar action to open the prompt library side panel; prompt cards use the same synced profiles as the in-page panel.
 
 -----
 

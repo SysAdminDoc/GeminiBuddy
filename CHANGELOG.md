@@ -16,6 +16,7 @@ All notable changes to GeminiBuddy will be documented in this file.
 - Added account-aware and manual prompt profiles with isolated settings/history, lossless switching, and single/all profile backup and restore.
 - Added redacted diagnostics views and JSON exports with runtime metadata, selector health, storage telemetry, profile/data counts, and recent sync/import/API failures.
 - Added marketplace catalog provenance and approval previews with schema/timestamp/count metadata, duplicate/change detection, rollback-protected merges, and catalog pin/refresh/remove/export controls.
+- Added a Chrome MV3 side panel prompt browser/editor with shared profiles and storage, prompt insertion messaging, and clean-profile smoke coverage.
 
 ## [v53.0.0] - 2026-06-27
 

@@ -34,6 +34,9 @@ copyFile(path.join(extensionDir, 'storage-schema.js'), path.join(unpackedDir, 's
 copyFile(path.join(extensionDir, 'options.html'), path.join(unpackedDir, 'options.html'));
 copyFile(path.join(extensionDir, 'options.css'), path.join(unpackedDir, 'options.css'));
 copyFile(path.join(extensionDir, 'options.js'), path.join(unpackedDir, 'options.js'));
+copyFile(path.join(extensionDir, 'sidepanel.html'), path.join(unpackedDir, 'sidepanel.html'));
+copyFile(path.join(extensionDir, 'sidepanel.css'), path.join(unpackedDir, 'sidepanel.css'));
+copyFile(path.join(extensionDir, 'sidepanel.js'), path.join(unpackedDir, 'sidepanel.js'));
 copyFile(path.join(rootDir, 'GeminiBuddy.user.js'), path.join(unpackedDir, 'GeminiBuddy.user.js'));
 copyFile(path.join(rootDir, 'icon.png'), path.join(unpackedDir, 'icon.png'));
 

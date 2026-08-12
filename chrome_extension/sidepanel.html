@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GeminiBuddy Side Panel</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <main class="side-panel" aria-labelledby="side-panel-title">
+    <header class="panel-header">
+      <div>
+        <p class="eyebrow">GeminiBuddy</p>
+        <h1 id="side-panel-title">Prompt library</h1>
+      </div>
+      <button id="refresh-button" type="button" title="Reload prompts">↻</button>
+    </header>
+
+    <label class="field-label" for="profile-select">Profile</label>
+    <select id="profile-select"></select>
+
+    <label class="field-label" for="search-input">Search</label>
+    <input id="search-input" type="search" placeholder="Search prompts…" autocomplete="off">
+
+    <section class="editor" aria-labelledby="editor-title">
+      <div class="section-heading">
+        <h2 id="editor-title">Prompt editor</h2>
+        <button id="cancel-edit" type="button" hidden>Cancel</button>
+      </div>
+      <label class="field-label" for="prompt-name">Name</label>
+      <input id="prompt-name" type="text" placeholder="Prompt name">
+      <label class="field-label" for="prompt-category">Group</label>
+      <input id="prompt-category" type="text" placeholder="Group name" value="Side Panel">
+      <label class="field-label" for="prompt-text">Text</label>
+      <textarea id="prompt-text" rows="4" placeholder="Prompt text"></textarea>
+      <button id="save-prompt" class="primary" type="button">Add prompt</button>
+    </section>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <div id="prompt-list" class="prompt-list" aria-live="polite"></div>
+  </main>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
