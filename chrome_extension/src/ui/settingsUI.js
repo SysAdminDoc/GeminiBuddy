@@ -7,6 +7,7 @@ import { presetThemes, FULL_WIDTH_STYLE_ID, FULL_WIDTH_CSS } from '../config.js'
 import { applySettingsAndTheme, renderActionButtons, renderAllPrompts } from './mainPanel.js';
 import { syncFromGist, importMarketplaceCatalog, removeMarketplaceCatalog, toggleMarketplaceCatalogPinned, createMarketplaceCatalogExport } from '../features/api.js';
 import { showImportExportModal, populateAnalytics } from './modals.js';
+import { i18nMessage } from '../i18n.js';
 
 function toggleFullWidth(enable) {
     let styleTag = document.getElementById(FULL_WIDTH_STYLE_ID);
@@ -32,12 +33,12 @@ export function buildSettingsUI() {
     const handleLink = document.createElement('a');
     handleLink.href = 'https://github.com/SysAdminDoc/Gemini-Prompt-Panel';
     handleLink.target = '_blank';
-    handleLink.title = 'View on GitHub';
-    handleLink.textContent = 'Prompt Panel';
+    handleLink.title = i18nMessage('viewOnGithub', 'View on GitHub');
+    handleLink.textContent = i18nMessage('panelTitle', 'Prompt Panel');
 
     const handleButton = document.createElement('button');
     handleButton.id = 'settings-handle-button';
-    handleButton.title = 'Open Settings';
+    handleButton.title = i18nMessage('openSettings', 'Open Settings');
     handleButton.appendChild(icons.settings.cloneNode(true));
     handleButton.querySelector('svg').setAttribute('width', 20);
     handleButton.querySelector('svg').setAttribute('height', 20);
@@ -63,8 +64,8 @@ export function buildSettingsUI() {
     const closeBtn = document.createElement('button');
     closeBtn.id = 'close-settings-btn';
     closeBtn.type = 'button';
-    closeBtn.title = 'Close';
-    closeBtn.setAttribute('aria-label', 'Close settings');
+    closeBtn.title = i18nMessage('close', 'Close');
+    closeBtn.setAttribute('aria-label', i18nMessage('closeSettings', 'Close settings'));
     closeBtn.appendChild(icons.close.cloneNode(true));
     header.append(headerTitle, closeBtn);
 
@@ -75,7 +76,7 @@ export function buildSettingsUI() {
     // Tabs
     const tabsContainer = document.createElement('div');
     tabsContainer.className = 'settings-tabs';
-    const TABS = { general: 'General', appearance: 'Appearance', prompts: 'Prompts & Groups', ai: 'AI & Sync', data: 'Data' };
+    const TABS = { general: i18nMessage('general', 'General'), appearance: i18nMessage('appearance', 'Appearance'), prompts: i18nMessage('promptsGroups', 'Prompts & Groups'), ai: i18nMessage('aiSync', 'AI & Sync'), data: i18nMessage('data', 'Data') };
     Object.entries(TABS).forEach(([key, value], index) => {
         const tabBtn = document.createElement('button');
         tabBtn.className = 'tab-btn';
@@ -236,7 +237,7 @@ function populateSettingsPanes() {
     ['dark', 'light'].forEach(theme => {
         const option = document.createElement('option');
         option.value = theme;
-        option.textContent = capitalizeFirstLetter(theme);
+        option.textContent = i18nMessage(theme, capitalizeFirstLetter(theme));
         settingsThemeSelect.appendChild(option);
     });
     settingsThemeSelect.value = state.settings.settingsTheme;
@@ -252,7 +253,7 @@ function populateSettingsPanes() {
     Object.keys(presetThemes).forEach(theme => {
         const option = document.createElement('option');
         option.value = theme;
-        option.textContent = capitalizeFirstLetter(theme);
+        option.textContent = i18nMessage(theme, capitalizeFirstLetter(theme));
         panelThemeSelect.appendChild(option);
     });
     panelThemeSelect.value = state.settings.themeName;
@@ -276,7 +277,7 @@ function populateSettingsPanes() {
 
     const handleStyleSelect = document.createElement('select');
     handleStyleSelect.id = 'setting-handle-style';
-    const handleStyles = { classic: 'Classic (Small)', edge: 'Edge (Full Height)' };
+    const handleStyles = { classic: i18nMessage('classicSmall', 'Classic (Small)'), edge: i18nMessage('edgeFull', 'Edge (Full Height)') };
     Object.entries(handleStyles).forEach(([value, text]) => {
         const option = document.createElement('option');
         option.value = value;
@@ -327,7 +328,7 @@ function populateSettingsPanes() {
     const newProfileBtn = document.createElement('button');
     newProfileBtn.type = 'button';
     newProfileBtn.className = 'settings-styled-button';
-    newProfileBtn.textContent = 'New Profile';
+    newProfileBtn.textContent = i18nMessage('newProfile', 'New Profile');
     newProfileBtn.addEventListener('click', async () => {
         const name = await showTextInputDialog({ title: 'Create prompt profile', message: 'Use a name such as Work or Personal.', label: 'Profile name', confirmLabel: 'Create' });
         if (!name) return;
@@ -344,7 +345,7 @@ function populateSettingsPanes() {
     const deleteProfileBtn = document.createElement('button');
     deleteProfileBtn.type = 'button';
     deleteProfileBtn.className = 'settings-styled-button';
-    deleteProfileBtn.textContent = 'Delete Current';
+    deleteProfileBtn.textContent = i18nMessage('deleteCurrent', 'Delete Current');
     deleteProfileBtn.addEventListener('click', async () => {
         const shouldDelete = await showDecisionDialog({ title: 'Delete profile?', message: `Delete the ${getActiveProfile().name} profile and its prompts?`, confirmLabel: 'Delete', destructive: true });
         if (!shouldDelete) return;
@@ -360,16 +361,16 @@ function populateSettingsPanes() {
     const exportProfileBtn = document.createElement('button');
     exportProfileBtn.type = 'button';
     exportProfileBtn.className = 'settings-styled-button';
-    exportProfileBtn.textContent = 'Export Current';
+    exportProfileBtn.textContent = i18nMessage('exportCurrent', 'Export Current');
     exportProfileBtn.addEventListener('click', () => exportProfiles('active').then(data => downloadJson(`${getActiveProfile().name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-profile.json`, data)).catch(error => showToast(error.message, 3000, 'error')));
     const exportAllProfilesBtn = document.createElement('button');
     exportAllProfilesBtn.type = 'button';
     exportAllProfilesBtn.className = 'settings-styled-button';
-    exportAllProfilesBtn.textContent = 'Export All';
+    exportAllProfilesBtn.textContent = i18nMessage('exportAll', 'Export All');
     exportAllProfilesBtn.addEventListener('click', () => exportProfiles('all').then(data => downloadJson('geminibuddy-profiles.json', data)).catch(error => showToast(error.message, 3000, 'error')));
     const importProfilesLabel = document.createElement('label');
     importProfilesLabel.className = 'settings-styled-button';
-    importProfilesLabel.textContent = 'Import Profiles';
+    importProfilesLabel.textContent = i18nMessage('importProfiles', 'Import Profiles');
     const importProfilesInput = document.createElement('input');
     importProfilesInput.type = 'file';
     importProfilesInput.accept = 'application/json,.json';
@@ -422,7 +423,7 @@ function populateSettingsPanes() {
     const clearApiKeyBtn = document.createElement('button');
     clearApiKeyBtn.type = 'button';
     clearApiKeyBtn.className = 'settings-styled-button';
-    clearApiKeyBtn.textContent = 'Clear';
+    clearApiKeyBtn.textContent = i18nMessage('clear', 'Clear');
     clearApiKeyBtn.addEventListener('click', async () => {
         await clearSecret('geminiAPIKey');
         apiKeyInput.value = '';
@@ -435,11 +436,11 @@ function populateSettingsPanes() {
     const diagnosticsButton = document.createElement('button');
     diagnosticsButton.type = 'button';
     diagnosticsButton.className = 'settings-styled-button';
-    diagnosticsButton.textContent = 'Download Diagnostics';
+    diagnosticsButton.textContent = i18nMessage('downloadDiagnostics', 'Download Diagnostics');
     const refreshDiagnosticsButton = document.createElement('button');
     refreshDiagnosticsButton.type = 'button';
     refreshDiagnosticsButton.className = 'settings-styled-button';
-    refreshDiagnosticsButton.textContent = 'Refresh';
+    refreshDiagnosticsButton.textContent = i18nMessage('refresh', 'Refresh');
     const diagnosticsOutput = document.createElement('pre');
     diagnosticsOutput.className = 'diagnostics-output';
     diagnosticsOutput.setAttribute('role', 'region');
@@ -471,7 +472,7 @@ function populateSettingsPanes() {
     });
     panes.ai.appendChild(createSettingRow('setting-gist-url', 'GitHub Gist Sync URL', 'Sync prompts from a raw Gist URL (replaces all local prompts on sync).', gistUrlInput));
     const syncBtn = document.createElement('button');
-    syncBtn.textContent = 'Sync Now from Gist';
+    syncBtn.textContent = i18nMessage('syncNowFromGist', 'Sync Now from Gist');
     syncBtn.className = 'settings-styled-button';
     syncBtn.addEventListener('click', () => syncFromGist(true));
     const syncRow = createSettingRow('gist-sync-action', 'Sync Action', 'Manually trigger a sync from the Gist URL provided above.', syncBtn);
@@ -489,7 +490,7 @@ function populateSettingsPanes() {
     const marketplaceImportBtn = document.createElement('button');
     marketplaceImportBtn.type = 'button';
     marketplaceImportBtn.className = 'settings-styled-button';
-    marketplaceImportBtn.textContent = 'Review Catalog';
+    marketplaceImportBtn.textContent = i18nMessage('reviewCatalog', 'Review Catalog');
     marketplaceImportBtn.addEventListener('click', () => importMarketplaceCatalog().catch(error => showToast(error.message, 3500, 'error')));
     const marketplaceControls = document.createElement('div');
     marketplaceControls.className = 'input-with-button';
@@ -504,7 +505,7 @@ function populateSettingsPanes() {
         if (!catalogs.length) {
             const empty = document.createElement('p');
             empty.className = 'description';
-            empty.textContent = 'No approved catalogs yet.';
+        empty.textContent = i18nMessage('noApprovedCatalogs', 'No approved catalogs yet.');
             catalogsContainer.appendChild(empty);
             return;
         }
@@ -519,19 +520,19 @@ function populateSettingsPanes() {
             actions.className = 'button-group';
             const pinBtn = document.createElement('button');
             pinBtn.type = 'button';
-            pinBtn.textContent = catalog.pinned ? 'Unpin' : 'Pin';
+        pinBtn.textContent = catalog.pinned ? i18nMessage('unpin', 'Unpin') : i18nMessage('pin', 'Pin');
             pinBtn.addEventListener('click', () => { toggleMarketplaceCatalogPinned(catalog.id); saveSettings().then(renderCatalogs); });
             const refreshBtn = document.createElement('button');
             refreshBtn.type = 'button';
-            refreshBtn.textContent = 'Refresh';
+        refreshBtn.textContent = i18nMessage('refresh', 'Refresh');
             refreshBtn.addEventListener('click', () => importMarketplaceCatalog(catalog.sourceUrl).then(renderCatalogs).catch(error => showToast(error.message, 3500, 'error')));
             const exportBtn = document.createElement('button');
             exportBtn.type = 'button';
-            exportBtn.textContent = 'Export';
+        exportBtn.textContent = i18nMessage('export', 'Export');
             exportBtn.addEventListener('click', () => downloadJson(`${catalog.sourceName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-catalog.json`, createMarketplaceCatalogExport(catalog)));
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
-            removeBtn.textContent = 'Remove';
+        removeBtn.textContent = i18nMessage('remove', 'Remove');
             removeBtn.addEventListener('click', () => { removeMarketplaceCatalog(catalog.id); saveSettings().then(renderCatalogs); });
             actions.append(pinBtn, refreshBtn, exportBtn, removeBtn);
             card.append(summary, provenance, actions);
@@ -544,13 +545,13 @@ function populateSettingsPanes() {
 
     // --- Data Pane ---
     const importExportBtn = document.createElement('button');
-    importExportBtn.textContent = 'Open Import / Export';
+    importExportBtn.textContent = i18nMessage('openImportExport', 'Open Import / Export');
     importExportBtn.className = 'settings-styled-button';
     importExportBtn.addEventListener('click', () => showImportExportModal());
     panes.data.appendChild(createSettingRow('data-import-export', 'Local Import / Export', 'Backup your prompts to a file or import them from a local JSON file.', importExportBtn));
 
     const analyticsBtn = document.createElement('button');
-    analyticsBtn.textContent = 'Show Prompt Analytics';
+    analyticsBtn.textContent = i18nMessage('showPromptAnalytics', 'Show Prompt Analytics');
     analyticsBtn.className = 'settings-styled-button';
     analyticsBtn.addEventListener('click', () => {
         populateAnalytics();

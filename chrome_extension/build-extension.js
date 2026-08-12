@@ -2,6 +2,7 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { assertVersionConsistency } = require('./version-check');
+const { assertI18nConsistency } = require('./i18n-check');
 
 const rootDir = path.resolve(__dirname, '..');
 const extensionDir = __dirname;
@@ -11,6 +12,7 @@ const packageJson = require('./package.json');
 const zipPath = path.join(distDir, `geminibuddy-mv3-v${packageJson.version}.zip`);
 
 assertVersionConsistency(rootDir);
+assertI18nConsistency(rootDir);
 
 function removeIfExists(targetPath) {
   if (fs.existsSync(targetPath)) {
@@ -29,6 +31,7 @@ fs.mkdirSync(unpackedDir, { recursive: true });
 copyFile(path.join(extensionDir, 'manifest.json'), path.join(unpackedDir, 'manifest.json'));
 copyFile(path.join(extensionDir, 'gm-shim.js'), path.join(unpackedDir, 'gm-shim.js'));
 copyFile(path.join(extensionDir, 'network-policy.js'), path.join(unpackedDir, 'network-policy.js'));
+copyFile(path.join(extensionDir, 'i18n.js'), path.join(unpackedDir, 'i18n.js'));
 copyFile(path.join(extensionDir, 'background.js'), path.join(unpackedDir, 'background.js'));
 copyFile(path.join(extensionDir, 'storage-schema.js'), path.join(unpackedDir, 'storage-schema.js'));
 copyFile(path.join(extensionDir, 'options.html'), path.join(unpackedDir, 'options.html'));
@@ -37,6 +40,7 @@ copyFile(path.join(extensionDir, 'options.js'), path.join(unpackedDir, 'options.
 copyFile(path.join(extensionDir, 'sidepanel.html'), path.join(unpackedDir, 'sidepanel.html'));
 copyFile(path.join(extensionDir, 'sidepanel.css'), path.join(unpackedDir, 'sidepanel.css'));
 copyFile(path.join(extensionDir, 'sidepanel.js'), path.join(unpackedDir, 'sidepanel.js'));
+fs.cpSync(path.join(extensionDir, '_locales'), path.join(unpackedDir, '_locales'), { recursive: true });
 copyFile(path.join(rootDir, 'GeminiBuddy.user.js'), path.join(unpackedDir, 'GeminiBuddy.user.js'));
 copyFile(path.join(rootDir, 'icon.png'), path.join(unpackedDir, 'icon.png'));
 

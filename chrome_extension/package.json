@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "node build-extension.js",
-    "smoke": "node ../tests/mv3-smoke.js"
+    "smoke": "node ../tests/mv3-smoke.js",
+    "check:i18n": "node i18n-check.js"
   }
 }

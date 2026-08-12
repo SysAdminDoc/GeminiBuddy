@@ -1,6 +1,9 @@
 (function() {
   'use strict';
 
+  globalThis.GeminiBuddyI18n?.apply?.();
+  const msg = (key, fallback, substitutions) => globalThis.GeminiBuddyI18n?.get?.(key, fallback, substitutions) || fallback;
+
   const storage = chrome.storage.sync || chrome.storage.local;
   const CHUNK_SIZE = 7000;
   const PROMPTS_KEY = 'gemini_custom_prompts_v6';
@@ -122,9 +125,9 @@
   function resetEditor() {
     editing = null;
     promptName.value = '';
-    promptCategory.value = 'Side Panel';
+    promptCategory.value = msg('sidePanelGroup', 'Side Panel');
     promptText.value = '';
-    savePromptButton.textContent = 'Add prompt';
+    savePromptButton.textContent = msg('addPrompt', 'Add prompt');
     cancelEditButton.hidden = true;
   }
 
@@ -133,7 +136,7 @@
     promptName.value = prompt.name || '';
     promptCategory.value = group;
     promptText.value = prompt.text || '';
-    savePromptButton.textContent = 'Save changes';
+    savePromptButton.textContent = msg('saveChanges', 'Save changes');
     cancelEditButton.hidden = false;
     promptName.focus();
   }
@@ -170,23 +173,23 @@
         const useButton = document.createElement('button');
         useButton.type = 'button';
         useButton.className = 'prompt-use';
-        useButton.setAttribute('aria-label', `Insert prompt: ${prompt.name}`);
+        useButton.setAttribute('aria-label', msg('insertPromptAria', `Insert prompt: ${prompt.name}`, [prompt.name]));
         const name = document.createElement('span');
         name.className = 'prompt-name';
-        name.textContent = prompt.name || 'Unnamed prompt';
+        name.textContent = prompt.name || msg('unnamedPrompt', 'Unnamed prompt');
         const preview = document.createElement('span');
         preview.className = 'prompt-preview';
         preview.textContent = prompt.text || '';
         useButton.append(name, preview);
         useButton.addEventListener('click', async () => {
           const result = await sendToActiveTab({ type: 'geminibuddy-insert-prompt', prompt: prompt.text, autoSend: !!prompt.autoSend });
-          setStatus(result.ok ? `Inserted “${prompt.name}”.` : (result.error || 'Could not reach the Gemini tab.'), !result.ok);
+          setStatus(result.ok ? `${msg('insertedPrompt', 'Inserted prompt.')} ${prompt.name}` : (result.error || msg('noActiveTab', 'Could not reach the Gemini tab.')), !result.ok);
         });
         const actions = document.createElement('div');
         actions.className = 'prompt-actions';
         actions.append(
-          createAction('Edit', () => beginEdit(prompt, group)),
-          createAction(pendingDelete === prompt.id ? 'Confirm delete' : 'Delete', async () => {
+          createAction(msg('edit', 'Edit'), () => beginEdit(prompt, group)),
+          createAction(pendingDelete === prompt.id ? msg('confirmDelete', 'Confirm delete') : msg('delete', 'Delete'), async () => {
             if (pendingDelete !== prompt.id) {
               pendingDelete = prompt.id;
               render();
@@ -206,7 +209,7 @@
     });
     if (!promptList.firstChild) {
       const empty = document.createElement('p');
-      empty.textContent = term ? 'No matching prompts.' : 'No prompts in this profile yet.';
+      empty.textContent = term ? msg('noMatchingPrompts', 'No matching prompts.') : msg('noPromptsProfile', 'No prompts in this profile yet.');
       promptList.appendChild(empty);
     }
   }
@@ -215,7 +218,7 @@
     await setValue(profilePromptsKey(), prompts);
     await setValue(PROMPTS_KEY, JSON.stringify(prompts));
     const response = await sendToActiveTab({ type: 'geminibuddy-refresh-profile' });
-    setStatus(response.ok ? 'Prompt library saved.' : 'Prompt library saved; reload Gemini to refresh the page panel.', !response.ok);
+    setStatus(response.ok ? msg('promptLibrarySaved', 'Prompt library saved.') : msg('refreshGemini', 'Prompt library saved; reload Gemini to refresh the page panel.'), !response.ok);
   }
 
   async function load() {
@@ -255,7 +258,7 @@
     const text = promptText.value.trim();
     const group = promptCategory.value.trim() || 'Side Panel';
     if (!name || !text) {
-      setStatus('Name and text are required.', true);
+      setStatus(msg('requiredNameText', 'Name and text are required.'), true);
       return;
     }
     if (editing) {

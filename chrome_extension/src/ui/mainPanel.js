@@ -7,6 +7,7 @@ import { createButtonWithIcon, showToast, showFatalErrorDialog } from '../utils.
 import { loadAndDisplayPrompts, renderAllPrompts, createCategory, handleSearch, savePrompts } from '../features/prompts.js';
 import { syncFromGist } from '../features/api.js';
 import { buildPromptFormModal, buildImportExportModal, buildAIEnhancerModal, buildAnalyticsModal, buildVersionHistoryModal, showPromptForm } from './modals.js';
+import { i18nMessage } from '../i18n.js';
 
 function applyTheme() {
     for (const [key, value] of Object.entries(state.settings.colors)) {
@@ -169,7 +170,7 @@ export function renderMiniPanel() {
 
     const searchInput = document.createElement('input');
     searchInput.type = 'search';
-    searchInput.placeholder = 'Search prompts...';
+    searchInput.placeholder = i18nMessage('searchPrompts', 'Search prompts...');
     searchInput.id = 'mini-prompt-search-input';
     searchInput.addEventListener('input', handleSearch);
     container.appendChild(searchInput);
@@ -211,33 +212,33 @@ export async function buildMainUI() {
 
         const hdr = document.createElement('div'); hdr.className = 'gemini-prompt-panel-header';
         state.leftHeaderControls = document.createElement('div'); state.leftHeaderControls.className = 'panel-header-controls';
-        const titleSpan = document.createElement('span'); titleSpan.className = 'panel-title'; titleSpan.textContent = 'Prompt Panel';
+        const titleSpan = document.createElement('span'); titleSpan.className = 'panel-title'; titleSpan.textContent = i18nMessage('panelTitle', 'Prompt Panel');
         state.rightHeaderControls = document.createElement('div'); state.rightHeaderControls.className = 'panel-header-controls';
-        state.arrowLeftBtn = document.createElement('button'); state.arrowLeftBtn.title = "Move to Left";
-        state.arrowRightBtn = document.createElement('button'); state.arrowRightBtn.title = "Move to Right";
-        state.lockButton = document.createElement('button'); state.lockButton.title = "Lock Panel";
+        state.arrowLeftBtn = document.createElement('button'); state.arrowLeftBtn.title = i18nMessage('moveLeft', 'Move to Left');
+        state.arrowRightBtn = document.createElement('button'); state.arrowRightBtn.title = i18nMessage('moveRight', 'Move to Right');
+        state.lockButton = document.createElement('button'); state.lockButton.title = i18nMessage('lockPanel', 'Lock Panel');
         const content = document.createElement('div'); content.className = 'gemini-prompt-panel-content';
         state.actionGroup = document.createElement('div'); state.actionGroup.className = 'button-group';
-        state.copyResponseButton = createButtonWithIcon('Copy Response', null);
-        state.copyCodeButton = createButtonWithIcon('Copy Code', null);
-        state.downloadCanvasButton = createButtonWithIcon('Download Canvas', icons.uploadFile.cloneNode(true));
+        state.copyResponseButton = createButtonWithIcon(i18nMessage('copyResponse', 'Copy Response'), null);
+        state.copyCodeButton = createButtonWithIcon(i18nMessage('copyCode', 'Copy Code'), null);
+        state.downloadCanvasButton = createButtonWithIcon(i18nMessage('downloadCanvas', 'Download Canvas'), icons.uploadFile.cloneNode(true));
         const searchInput = document.createElement('input'); searchInput.type = 'search'; searchInput.id = 'prompt-search-input';
-        const addBtn = createButtonWithIcon('Add New Prompt', icons.plus.cloneNode(true)); addBtn.id = 'add-prompt-btn';
+        const addBtn = createButtonWithIcon(i18nMessage('addNewPrompt', 'Add New Prompt'), icons.plus.cloneNode(true)); addBtn.id = 'add-prompt-btn';
         const searchAddContainer = document.createElement('div'); searchAddContainer.className = 'search-add-container';
         const panelActionButtons = document.createElement('div');
         panelActionButtons.className = 'button-group';
         panelActionButtons.id = 'panel-action-buttons';
-        const collapseBtn = createButtonWithIcon('Collapse All', null);
-        const expandBtn = createButtonWithIcon('Expand All', null);
+        const collapseBtn = createButtonWithIcon(i18nMessage('collapseAll', 'Collapse All'), null);
+        const expandBtn = createButtonWithIcon(i18nMessage('expandAll', 'Expand All'), null);
         panelActionButtons.append(collapseBtn, expandBtn);
         const promptGroup = document.createElement('div'); promptGroup.className = 'prompt-group-container';
         const cont = document.createElement('div'); cont.id = 'custom-prompts-container';
         state.navigator = document.createElement('div'); state.navigator.className = 'post-navigator';
-        const navToTop = document.createElement('button'); navToTop.id = 'nav-to-top'; navToTop.title = 'Scroll to Top';
-        const navUp = document.createElement('button'); navUp.id = 'nav-up'; navUp.title = 'Previous Post';
-        const navDown = document.createElement('button'); navDown.id = 'nav-down'; navDown.title = 'Next Post';
-        const navToBottom = document.createElement('button'); navToBottom.id = 'nav-to-bottom'; navToBottom.title = 'Scroll to Bottom';
-        const mainNavArrow = document.createElement('button'); mainNavArrow.className = 'main-nav-arrow'; mainNavArrow.title = 'Toggle Panel';
+        const navToTop = document.createElement('button'); navToTop.id = 'nav-to-top'; navToTop.title = i18nMessage('scrollTop', 'Scroll to Top');
+        const navUp = document.createElement('button'); navUp.id = 'nav-up'; navUp.title = i18nMessage('previousPost', 'Previous Post');
+        const navDown = document.createElement('button'); navDown.id = 'nav-down'; navDown.title = i18nMessage('nextPost', 'Next Post');
+        const navToBottom = document.createElement('button'); navToBottom.id = 'nav-to-bottom'; navToBottom.title = i18nMessage('scrollBottom', 'Scroll to Bottom');
+        const mainNavArrow = document.createElement('button'); mainNavArrow.className = 'main-nav-arrow'; mainNavArrow.title = i18nMessage('togglePanel', 'Toggle Panel');
         const mainNavIconContainer = document.createElement('div');
 
         state.arrowLeftBtn.appendChild(icons.arrowLeft.cloneNode(true));
@@ -248,7 +249,7 @@ export async function buildMainUI() {
         state.copyResponseButton.classList.add('copy-btn');
         state.copyCodeButton.classList.add('copy-btn');
         state.downloadCanvasButton.classList.add('copy-btn');
-        searchInput.placeholder = 'Search prompts...';
+        searchInput.placeholder = i18nMessage('searchPrompts', 'Search prompts...');
         searchAddContainer.append(addBtn, searchInput, panelActionButtons);
         promptGroup.appendChild(cont);
         content.append(state.actionGroup, searchAddContainer, promptGroup);

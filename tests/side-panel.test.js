@@ -11,7 +11,7 @@ test('MV3 side panel is packaged with shared storage and insertion bridge permis
     assert.deepEqual(manifest.permissions.includes('sidePanel'), true);
     assert.deepEqual(manifest.permissions.includes('activeTab'), true);
     assert.equal(manifest.side_panel.default_path, 'sidepanel.html');
-    assert.equal(manifest.action.default_title, 'Open GeminiBuddy side panel');
+    assert.equal(manifest.action.default_title, '__MSG_actionOpenSidePanel__');
     assert.match(html, /id="profile-select"/);
     assert.match(html, /id="prompt-text"/);
     assert.match(sidePanel, /gemini_prompt_profile_prompts_v1_/);

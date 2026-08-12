@@ -10,6 +10,7 @@ import { GM_xmlhttpRequest } from '../GM_wrappers.js';
 import { GM_SETTINGS_KEY } from '../config.js';
 import { authorizeRemoteUrl } from '../network.js';
 import { createPromptExport, parsePromptImport, mergePromptGroups } from '../features/transfer.js';
+import { i18nMessage } from '../i18n.js';
 
 export function buildAnalyticsModal() {
     const modal = document.createElement('div');
@@ -21,7 +22,7 @@ export function buildAnalyticsModal() {
     modalHeader.className = 'modal-header';
     const title = document.createElement('h2');
     title.className = 'modal-title';
-    title.textContent = 'Prompt Analytics';
+    title.textContent = i18nMessage('promptAnalytics', 'Prompt Analytics');
     const closeBtn = document.createElement('button');
     closeBtn.className = 'modal-close-btn';
     closeBtn.appendChild(icons.close.cloneNode(true));
@@ -147,7 +148,7 @@ export function showVersionHistory(promptData) {
     const history = state.promptHistory[promptData.id] || [];
     if (history.length === 0) {
         const noHistory = document.createElement('li');
-        noHistory.textContent = 'No previous versions found.';
+        noHistory.textContent = i18nMessage('noPreviousVersions', 'No previous versions found.');
         list.appendChild(noHistory);
         return;
     }
@@ -159,13 +160,13 @@ export function showVersionHistory(promptData) {
         const textSpan = document.createElement('span');
         textSpan.className = 'history-text';
         textSpan.textContent = entry.text;
-        const restoreBtn = createButtonWithIcon('Restore', null);
+        const restoreBtn = createButtonWithIcon(i18nMessage('restore', 'Restore'), null);
         restoreBtn.style.flexShrink = '0';
         restoreBtn.addEventListener('click', async () => {
             const shouldRestore = await showDecisionDialog({
-                title: 'Restore prompt version?',
-                message: 'Restore this version? The current text will be added to history first.',
-                confirmLabel: 'Restore'
+                title: i18nMessage('restorePromptVersion', 'Restore prompt version?'),
+                message: i18nMessage('restorePromptMessage', 'Restore this version? The current text will be added to history first.'),
+                confirmLabel: i18nMessage('restore', 'Restore')
             });
             if (shouldRestore) {
                 await savePromptRollbackSnapshot('version-restore');
@@ -174,7 +175,7 @@ export function showVersionHistory(promptData) {
                 savePrompts().then(() => {
                     renderAllPrompts();
                     closeAccessibleModal(state.versionHistoryModal);
-                    showToast('Prompt restored!', 2000, 'success');
+                    showToast(i18nMessage('promptRestored', 'Prompt restored!'), 2000, 'success');
                 });
             }
         });
@@ -196,7 +197,7 @@ export function buildPromptFormModal() {
     title.id = 'prompt-form-title';
     const closeBtn = document.createElement('button');
     closeBtn.className = 'modal-close-btn';
-    closeBtn.title = 'Close';
+    closeBtn.title = i18nMessage('close', 'Close');
     closeBtn.appendChild(icons.close.cloneNode(true));
     modalHeader.append(title, closeBtn);
     const modalBody = document.createElement('div');
@@ -211,7 +212,7 @@ export function buildPromptFormModal() {
     nameSection.className = 'form-section';
     const nameLabel = document.createElement('label');
     nameLabel.htmlFor = 'prompt-name-input';
-    nameLabel.textContent = 'Prompt Name';
+    nameLabel.textContent = i18nMessage('promptName', 'Prompt Name');
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.id = 'prompt-name-input';
@@ -222,7 +223,7 @@ export function buildPromptFormModal() {
     textSection.className = 'form-section';
     const textLabel = document.createElement('label');
     textLabel.htmlFor = 'prompt-text-input';
-    textLabel.textContent = 'Prompt Text';
+    textLabel.textContent = i18nMessage('promptText', 'Prompt Text');
     const textInput = document.createElement('textarea');
     textInput.id = 'prompt-text-input';
     textInput.required = true;
@@ -232,7 +233,7 @@ export function buildPromptFormModal() {
     tagsSection.className = 'form-section';
     const tagsLabel = document.createElement('label');
     tagsLabel.htmlFor = 'prompt-tags-input';
-    tagsLabel.textContent = 'Tags (comma-separated)';
+    tagsLabel.textContent = i18nMessage('tagsCommaSeparated', 'Tags (comma-separated)');
     const tagsInput = document.createElement('input');
     tagsInput.type = 'text';
     tagsInput.id = 'prompt-tags-input';
@@ -242,13 +243,13 @@ export function buildPromptFormModal() {
     catSection.className = 'form-section';
     const catLabel = document.createElement('label');
     catLabel.htmlFor = 'prompt-category-select';
-    catLabel.textContent = 'Prompt Group';
+    catLabel.textContent = i18nMessage('promptGroup', 'Prompt Group');
     const catSelect = document.createElement('select');
     catSelect.id = 'prompt-category-select';
     const newCatInput = document.createElement('input');
     newCatInput.type = 'text';
     newCatInput.id = 'prompt-new-category-input';
-    newCatInput.placeholder = 'New group name...';
+    newCatInput.placeholder = i18nMessage('newGroupPlaceholder', 'New group name...');
     newCatInput.style.display = 'none';
     newCatInput.style.marginTop = '8px';
     catSelect.addEventListener('change', () => {
@@ -265,7 +266,7 @@ export function buildPromptFormModal() {
     autoSendCheck.id = 'prompt-autosend-checkbox';
     const autoSendLabel = document.createElement('label');
     autoSendLabel.htmlFor = 'prompt-autosend-checkbox';
-    autoSendLabel.textContent = 'Auto-Send';
+    autoSendLabel.textContent = i18nMessage('autoSend', 'Auto-Send');
     autoSendSection.append(autoSendCheck, autoSendLabel);
     const favoriteSection = document.createElement('div');
     favoriteSection.className = 'form-checkbox';
@@ -274,7 +275,7 @@ export function buildPromptFormModal() {
     favoriteCheck.id = 'prompt-favorite-checkbox';
     const favoriteLabel = document.createElement('label');
     favoriteLabel.htmlFor = 'prompt-favorite-checkbox';
-    favoriteLabel.textContent = 'Favorite';
+    favoriteLabel.textContent = i18nMessage('favorite', 'Favorite');
     favoriteSection.append(favoriteCheck, favoriteLabel);
     const pinSection = document.createElement('div');
     pinSection.className = 'form-checkbox';
@@ -283,7 +284,7 @@ export function buildPromptFormModal() {
     pinCheck.id = 'prompt-pin-checkbox';
     const pinLabel = document.createElement('label');
     pinLabel.htmlFor = 'prompt-pin-checkbox';
-    pinLabel.textContent = 'Pin to Top';
+    pinLabel.textContent = i18nMessage('pinToTop', 'Pin to Top');
     pinSection.append(pinCheck, pinLabel);
     togglesRow.append(autoSendSection, favoriteSection, pinSection);
     form.appendChild(togglesRow);
@@ -294,12 +295,12 @@ export function buildPromptFormModal() {
     saveBtn.type = 'submit';
     saveBtn.className = 'gemini-prompt-panel-button copy-btn';
     saveBtn.id = 'save-prompt-btn';
-    saveBtn.textContent = 'Save Prompt';
+    saveBtn.textContent = i18nMessage('savePrompt', 'Save Prompt');
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'gemini-prompt-panel-button';
     cancelBtn.id = 'cancel-prompt-btn';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = i18nMessage('cancel', 'Cancel');
     btnGroup.append(saveBtn, cancelBtn);
     form.appendChild(btnGroup);
     modalBody.appendChild(form);
@@ -415,7 +416,7 @@ export function buildImportExportModal() {
     modalHeader.className = 'modal-header';
     const title = document.createElement('h2');
     title.className = 'modal-title';
-    title.textContent = 'Import / Export Prompts';
+    title.textContent = i18nMessage('importExportPrompts', 'Import / Export Prompts');
     const closeBtn = document.createElement('button');
     closeBtn.className = 'modal-close-btn';
     closeBtn.appendChild(icons.close.cloneNode(true));
@@ -431,8 +432,8 @@ export function buildImportExportModal() {
     const exportSection = document.createElement('div');
     exportSection.className = 'form-section';
     const exportLabel = document.createElement('label');
-    exportLabel.textContent = 'Export Prompts';
-    const exportBtn = createButtonWithIcon('Export to JSON File', icons.importExport.cloneNode(true));
+    exportLabel.textContent = i18nMessage('exportPrompts', 'Export Prompts');
+    const exportBtn = createButtonWithIcon(i18nMessage('exportJsonFile', 'Export to JSON File'), icons.importExport.cloneNode(true));
     exportBtn.classList.add('copy-btn');
     exportBtn.addEventListener('click', async () => {
         try {
@@ -454,13 +455,13 @@ export function buildImportExportModal() {
     const urlSection = document.createElement('div');
     urlSection.className = 'form-section';
     const urlLabel = document.createElement('label');
-    urlLabel.textContent = 'Import from URL';
+    urlLabel.textContent = i18nMessage('importFromUrl', 'Import from URL');
     const urlInputContainer = document.createElement('div');
     urlInputContainer.className = 'input-with-button';
     const urlInput = document.createElement('input');
     urlInput.type = 'url';
-    urlInput.placeholder = 'Paste URL to raw .json file...';
-    const fetchBtn = createButtonWithIcon('Fetch', icons.webLink.cloneNode(true));
+    urlInput.placeholder = i18nMessage('pasteRawJsonUrl', 'Paste URL to raw .json file...');
+    const fetchBtn = createButtonWithIcon(i18nMessage('fetch', 'Fetch'), icons.webLink.cloneNode(true));
     urlInputContainer.append(urlInput, fetchBtn);
     urlSection.append(urlLabel, urlInputContainer);
 
@@ -468,19 +469,19 @@ export function buildImportExportModal() {
     importSection.className = 'form-section';
     const importLabel = document.createElement('label');
     importLabel.htmlFor = 'import-textarea';
-    importLabel.textContent = 'Import from File or Paste JSON';
+    importLabel.textContent = i18nMessage('importFromFilePaste', 'Import from File or Paste JSON');
     const importTextarea = document.createElement('textarea');
     importTextarea.id = 'import-textarea';
-    importTextarea.placeholder = '...or paste your exported JSON here.';
+    importTextarea.placeholder = i18nMessage('pasteExportedJson', '...or paste your exported JSON here.');
     importTextarea.style.minHeight = '100px';
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.id = 'import-file-input';
     fileInput.accept = '.json,application/json';
-    const fileBtn = createButtonWithIcon('Select JSON File', icons.uploadFile.cloneNode(true));
+    const fileBtn = createButtonWithIcon(i18nMessage('selectJsonFile', 'Select JSON File'), icons.uploadFile.cloneNode(true));
     fileBtn.classList.add('file-import-button');
     fileBtn.type = 'button';
-    const importBtn = createButtonWithIcon('Preview Import', null);
+    const importBtn = createButtonWithIcon(i18nMessage('previewImport', 'Preview Import'), null);
     const importPreview = document.createElement('p');
     importPreview.className = 'import-preview';
     importPreview.setAttribute('role', 'status');
@@ -495,7 +496,7 @@ export function buildImportExportModal() {
     const resetImportPreview = () => {
         pendingImport = null;
         importPreview.textContent = '';
-        importBtn.textContent = 'Preview Import';
+        importBtn.textContent = i18nMessage('previewImport', 'Preview Import');
     };
     importTextarea.addEventListener('input', resetImportPreview);
 
@@ -524,7 +525,7 @@ export function buildImportExportModal() {
             showToast('Remote imports require an allowed HTTPS origin or browser permission.', 3500, 'error');
             return;
         }
-        fetchBtn.textContent = 'Fetching...';
+        fetchBtn.textContent = i18nMessage('fetching', 'Fetching...');
         fetchBtn.disabled = true;
         GM_xmlhttpRequest({
             method: 'GET',
@@ -534,14 +535,14 @@ export function buildImportExportModal() {
                 state.lastFetchedUrl = url;
                 resetImportPreview();
                 showToast('Fetched content from URL.', 2000, 'success');
-                fetchBtn.textContent = 'Fetch';
+                fetchBtn.textContent = i18nMessage('fetch', 'Fetch');
                 fetchBtn.disabled = false;
                 urlInput.value = '';
             },
             onerror: function() {
                 state.lastFetchedUrl = null;
                 showToast('Failed to fetch from URL.', 3000, 'error');
-                fetchBtn.textContent = 'Fetch';
+                fetchBtn.textContent = i18nMessage('fetch', 'Fetch');
                 fetchBtn.disabled = false;
             }
         });
@@ -554,7 +555,7 @@ export function buildImportExportModal() {
                 importPreview.textContent = `Dry-run preview (${pendingImport.sourceShape}): ${pendingImport.promptCount} valid prompts in ${pendingImport.groupCount} groups.`;
                 if (pendingImport.rejected.length) importPreview.textContent += ` Rejected ${pendingImport.rejected.length}: ${pendingImport.rejected.slice(0, 5).join(' | ')}`;
                 if (pendingImport.adjustedIds.length) importPreview.textContent += ` Adjusted duplicate IDs: ${pendingImport.adjustedIds.length}.`;
-                importBtn.textContent = 'Apply Import';
+            importBtn.textContent = i18nMessage('applyImport', 'Apply Import');
                 showToast('Dry-run complete. Review the import summary, then apply it.', 3000, 'success');
                 return;
             }
@@ -585,7 +586,7 @@ export function buildImportExportModal() {
         } catch (error) {
             recordDiagnosticEvent('import', 'error', error.message);
             pendingImport = null;
-            importBtn.textContent = 'Preview Import';
+            importBtn.textContent = i18nMessage('previewImport', 'Preview Import');
             showToast('Error importing: ' + error.message, 3000, 'error');
         }
     });
@@ -612,7 +613,7 @@ export function buildAIEnhancerModal() {
     modalHeader.className = 'modal-header';
     const title = document.createElement('h2');
     title.className = 'modal-title';
-    title.textContent = 'AI Prompt Enhancer';
+    title.textContent = i18nMessage('aiPromptEnhancer', 'AI Prompt Enhancer');
     const closeBtn = document.createElement('button');
     closeBtn.className = 'modal-close-btn';
     closeBtn.appendChild(icons.close.cloneNode(true));
@@ -621,12 +622,12 @@ export function buildAIEnhancerModal() {
     modalBody.className = 'modal-body';
     const diffContainer = document.createElement('div');
     diffContainer.className = 'diff-container';
-    diffContainer.textContent = 'Click "Enhance" to see the result...';
+    diffContainer.textContent = i18nMessage('enhanceHint', 'Click "Enhance" to see the result...');
     const btnGroup = document.createElement('div');
     btnGroup.className = 'button-group';
     btnGroup.style.marginTop = '20px';
-    const enhanceBtn = createButtonWithIcon('Enhance', icons.sparkle.cloneNode(true));
-    const replaceBtn = createButtonWithIcon('Accept & Replace', null);
+    const enhanceBtn = createButtonWithIcon(i18nMessage('enhance', 'Enhance'), icons.sparkle.cloneNode(true));
+    const replaceBtn = createButtonWithIcon(i18nMessage('acceptReplace', 'Accept & Replace'), null);
     replaceBtn.disabled = true;
     btnGroup.append(enhanceBtn, replaceBtn);
     modalBody.append(diffContainer, btnGroup);
@@ -654,7 +655,7 @@ export async function showAIEnhancer(promptData) {
 
     enhanceBtn.onclick = async () => {
         enhanceBtn.disabled = true;
-        enhanceBtn.textContent = 'Enhancing...';
+        enhanceBtn.textContent = i18nMessage('enhancing', 'Enhancing...');
         try {
             const result = await callGeminiAPI(`Rewrite the following prompt to be clearer, more effective, and more detailed. Keep the core intent but improve the structure and wording. Do not add any explanatory text before or after the rewritten prompt itself.\n\nORIGINAL PROMPT:\n"""\n${promptData.text}\n"""\n\nREWRITTEN PROMPT:`);
             enhancedText = result;
@@ -670,7 +671,7 @@ export async function showAIEnhancer(promptData) {
             diffContainer.textContent = 'Error: ' + error.message;
         } finally {
             enhanceBtn.disabled = false;
-            enhanceBtn.textContent = 'Re-Enhance';
+            enhanceBtn.textContent = i18nMessage('reEnhance', 'Re-Enhance');
         }
     };
 

@@ -23,6 +23,10 @@
 (function() {
     'use strict';
 
+    function i18nMessage(key, fallback, substitutions) {
+        return globalThis.GeminiBuddyI18n?.get?.(key, fallback, substitutions) || fallback;
+    }
+
     // --- EXECUTION GUARD ---
     if (window.geminiPanelEnhanced) {
         console.log('Gemini Prompt Panel Enhancer is already running.');
@@ -1206,7 +1210,7 @@
         nameSection.className = 'form-section';
         const nameLabel = document.createElement('label');
         nameLabel.htmlFor = 'prompt-name-input';
-        nameLabel.textContent = 'Prompt Name';
+        nameLabel.textContent = i18nMessage('promptName', 'Prompt Name');
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
         nameInput.id = 'prompt-name-input';
@@ -1217,7 +1221,7 @@
         textSection.className = 'form-section';
         const textLabel = document.createElement('label');
         textLabel.htmlFor = 'prompt-text-input';
-        textLabel.textContent = 'Prompt Text';
+        textLabel.textContent = i18nMessage('promptText', 'Prompt Text');
         const textInput = document.createElement('textarea');
         textInput.id = 'prompt-text-input';
         textInput.required = true;
@@ -1227,17 +1231,17 @@
         chainSection.className = 'form-section';
         const chainLabel = document.createElement('label');
         chainLabel.htmlFor = 'prompt-chain-steps-input';
-        chainLabel.textContent = 'Follow-Up Steps';
+        chainLabel.textContent = i18nMessage('followUpSteps', 'Follow-Up Steps');
         const chainInput = document.createElement('textarea');
         chainInput.id = 'prompt-chain-steps-input';
-        chainInput.placeholder = 'Step 2 using {previous_response}\n---\nStep 3';
+        chainInput.placeholder = i18nMessage('followUpPlaceholder', 'Step 2 using {previous_response}\n---\nStep 3');
         chainSection.append(chainLabel, chainInput);
         form.appendChild(chainSection);
         const gemUrlSection = document.createElement('div');
         gemUrlSection.className = 'form-section';
         const gemUrlLabel = document.createElement('label');
         gemUrlLabel.htmlFor = 'prompt-gem-url-input';
-        gemUrlLabel.textContent = 'Gem URL';
+        gemUrlLabel.textContent = i18nMessage('gemUrl', 'Gem URL');
         const gemUrlInput = document.createElement('input');
         gemUrlInput.type = 'url';
         gemUrlInput.id = 'prompt-gem-url-input';
@@ -1248,7 +1252,7 @@
         tagsSection.className = 'form-section';
         const tagsLabel = document.createElement('label');
         tagsLabel.htmlFor = 'prompt-tags-input';
-        tagsLabel.textContent = 'Tags (comma-separated)';
+        tagsLabel.textContent = i18nMessage('tagsCommaSeparated', 'Tags (comma-separated)');
         const tagsInput = document.createElement('input');
         tagsInput.type = 'text';
         tagsInput.id = 'prompt-tags-input';
@@ -1258,13 +1262,13 @@
         catSection.className = 'form-section';
         const catLabel = document.createElement('label');
         catLabel.htmlFor = 'prompt-category-select';
-        catLabel.textContent = 'Prompt Group';
+        catLabel.textContent = i18nMessage('promptGroup', 'Prompt Group');
         const catSelect = document.createElement('select');
         catSelect.id = 'prompt-category-select';
         const newCatInput = document.createElement('input');
         newCatInput.type = 'text';
         newCatInput.id = 'prompt-new-category-input';
-        newCatInput.placeholder = 'New group name...';
+        newCatInput.placeholder = i18nMessage('newGroupPlaceholder', 'New group name...');
         newCatInput.style.display = 'none';
         newCatInput.style.marginTop = '8px';
         catSection.append(catLabel, catSelect, newCatInput);
@@ -1278,7 +1282,7 @@
         autoSendCheck.id = 'prompt-autosend-checkbox';
         const autoSendLabel = document.createElement('label');
         autoSendLabel.htmlFor = 'prompt-autosend-checkbox';
-        autoSendLabel.textContent = 'Auto-Send';
+        autoSendLabel.textContent = i18nMessage('autoSend', 'Auto-Send');
         autoSendSection.append(autoSendCheck, autoSendLabel);
         const favoriteSection = document.createElement('div');
         favoriteSection.className = 'form-checkbox';
@@ -1287,7 +1291,7 @@
         favoriteCheck.id = 'prompt-favorite-checkbox';
         const favoriteLabel = document.createElement('label');
         favoriteLabel.htmlFor = 'prompt-favorite-checkbox';
-        favoriteLabel.textContent = 'Favorite';
+        favoriteLabel.textContent = i18nMessage('favorite', 'Favorite');
         favoriteSection.append(favoriteCheck, favoriteLabel);
         const pinSection = document.createElement('div');
         pinSection.className = 'form-checkbox';
@@ -1296,7 +1300,7 @@
         pinCheck.id = 'prompt-pin-checkbox';
         const pinLabel = document.createElement('label');
         pinLabel.htmlFor = 'prompt-pin-checkbox';
-        pinLabel.textContent = 'Pin to Top';
+        pinLabel.textContent = i18nMessage('pinToTop', 'Pin to Top');
         pinSection.append(pinCheck, pinLabel);
         togglesRow.append(autoSendSection, favoriteSection, pinSection);
         form.appendChild(togglesRow);
@@ -1307,12 +1311,12 @@
         saveBtn.type = 'submit';
         saveBtn.className = 'gemini-prompt-panel-button copy-btn';
         saveBtn.id = 'save-prompt-btn';
-        saveBtn.textContent = 'Save Prompt';
+        saveBtn.textContent = i18nMessage('savePrompt', 'Save Prompt');
         const cancelBtn = document.createElement('button');
         cancelBtn.type = 'button';
         cancelBtn.className = 'gemini-prompt-panel-button';
         cancelBtn.id = 'cancel-prompt-btn';
-        cancelBtn.textContent = 'Cancel';
+        cancelBtn.textContent = i18nMessage('cancel', 'Cancel');
         btnGroup.append(saveBtn, cancelBtn);
         form.appendChild(btnGroup);
         modalBody.appendChild(form);
@@ -1330,7 +1334,7 @@
         modalHeader.className = 'modal-header';
         const title = document.createElement('h2');
         title.className = 'modal-title';
-        title.textContent = 'Settings';
+        title.textContent = i18nMessage('settingsTitle', 'Settings');
         const closeBtn = document.createElement('button');
         closeBtn.className = 'modal-close-btn';
         closeBtn.appendChild(icons.close.cloneNode(true));
@@ -1354,7 +1358,7 @@
         modalHeader.className = 'modal-header';
         const title = document.createElement('h2');
         title.className = 'modal-title';
-        title.textContent = 'Import / Export Prompts';
+        title.textContent = i18nMessage('importExportPrompts', 'Import / Export Prompts');
         const closeBtn = document.createElement('button');
         closeBtn.className = 'modal-close-btn';
         closeBtn.appendChild(icons.close.cloneNode(true));
@@ -1377,7 +1381,7 @@
         modalHeader.className = 'modal-header';
         const title = document.createElement('h2');
         title.className = 'modal-title';
-        title.textContent = 'AI Prompt Enhancer';
+        title.textContent = i18nMessage('aiPromptEnhancer', 'AI Prompt Enhancer');
         const closeBtn = document.createElement('button');
         closeBtn.className = 'modal-close-btn';
         closeBtn.appendChild(icons.close.cloneNode(true));
@@ -1386,7 +1390,7 @@
         modalBody.className = 'modal-body';
         const diffContainer = document.createElement('div');
         diffContainer.className = 'diff-container';
-        diffContainer.textContent = 'Click "Enhance" to see the result...';
+        diffContainer.textContent = i18nMessage('enhanceHint', 'Click "Enhance" to see the result...');
         const btnGroup = document.createElement('div');
         btnGroup.className = 'button-group';
         btnGroup.style.marginTop = '20px';
@@ -1407,7 +1411,7 @@
         modalHeader.className = 'modal-header';
         const title = document.createElement('h2');
         title.className = 'modal-title';
-        title.textContent = 'Prompt Analytics';
+        title.textContent = i18nMessage('promptAnalytics', 'Prompt Analytics');
         const closeBtn = document.createElement('button');
         closeBtn.className = 'modal-close-btn';
         closeBtn.appendChild(icons.close.cloneNode(true));
@@ -3452,10 +3456,10 @@
             panelModeSelector.className = 'panel-mode-selector';
             const chatOption = document.createElement('option');
             chatOption.value = 'chat';
-            chatOption.textContent = 'Chat Prompts';
+            chatOption.textContent = i18nMessage('chatPrompts', 'Chat Prompts');
             const veoOption = document.createElement('option');
             veoOption.value = 'veo';
-            veoOption.textContent = 'VEO Video Prompts';
+            veoOption.textContent = i18nMessage('veoVideoPrompts', 'VEO Video Prompts');
             panelModeSelector.append(chatOption, veoOption);
             panelModeSelector.value = currentPanelView; // Set based on auto-detection
             panelModeSelector.addEventListener('change', (e) => {
@@ -3465,11 +3469,11 @@
             // --- END NEW ---
 
             rightHeaderControls = document.createElement('div'); rightHeaderControls.className = 'panel-header-controls';
-            settingsBtn = document.createElement('button'); settingsBtn.title = "Settings";
-            analyticsBtn = document.createElement('button'); analyticsBtn.title = "Analytics";
-            arrowLeftBtn = document.createElement('button'); arrowLeftBtn.title = "Move to Left";
-            arrowRightBtn = document.createElement('button'); arrowRightBtn.title = "Move to Right";
-            lockButton = document.createElement('button'); lockButton.title = "Lock Panel";
+            settingsBtn = document.createElement('button'); settingsBtn.title = i18nMessage('settings', 'Settings');
+            analyticsBtn = document.createElement('button'); analyticsBtn.title = i18nMessage('analytics', 'Analytics');
+            arrowLeftBtn = document.createElement('button'); arrowLeftBtn.title = i18nMessage('moveLeft', 'Move to Left');
+            arrowRightBtn = document.createElement('button'); arrowRightBtn.title = i18nMessage('moveRight', 'Move to Right');
+            lockButton = document.createElement('button'); lockButton.title = i18nMessage('lockPanel', 'Lock Panel');
 
             // Append icons and assemble header
             settingsBtn.appendChild(icons.settings.cloneNode(true));
@@ -3490,19 +3494,19 @@
                 modelShortcutGroup.appendChild(modelBtn);
             });
             actionGroup = document.createElement('div'); actionGroup.className = 'button-group';
-            copyResponseButton = createButtonWithIcon('Copy Response', null);
-            copyCodeButton = createButtonWithIcon('Copy Code', null);
-            canvasButton = createButtonWithIcon('Canvas', null);
-            deepResearchButton = createButtonWithIcon('Deep Research', null);
-            attachmentPasteButton = createButtonWithIcon('Paste Attachment', null);
+            copyResponseButton = createButtonWithIcon(i18nMessage('copyResponse', 'Copy Response'), null);
+            copyCodeButton = createButtonWithIcon(i18nMessage('copyCode', 'Copy Code'), null);
+            canvasButton = createButtonWithIcon(i18nMessage('canvas', 'Canvas'), null);
+            deepResearchButton = createButtonWithIcon(i18nMessage('deepResearch', 'Deep Research'), null);
+            attachmentPasteButton = createButtonWithIcon(i18nMessage('pasteAttachment', 'Paste Attachment'), null);
 
             searchAddContainer = document.createElement('div'); // Keep reference to hide/show
             searchAddContainer.className = 'search-add-container';
             const searchInput = document.createElement('input'); searchInput.type = 'search'; searchInput.id = 'prompt-search-input';
-            const addBtn = createButtonWithIcon('Add New Prompt', icons.plus.cloneNode(true)); addBtn.id = 'add-prompt-btn';
+            const addBtn = createButtonWithIcon(i18nMessage('addNewPrompt', 'Add New Prompt'), icons.plus.cloneNode(true)); addBtn.id = 'add-prompt-btn';
             const panelActionButtons = document.createElement('div'); panelActionButtons.className = 'button-group'; panelActionButtons.id = 'panel-action-buttons';
-            const collapseBtn = createButtonWithIcon('Collapse All', null);
-            const expandBtn = createButtonWithIcon('Expand All', null);
+            const collapseBtn = createButtonWithIcon(i18nMessage('collapseAll', 'Collapse All'), null);
+            const expandBtn = createButtonWithIcon(i18nMessage('expandAll', 'Expand All'), null);
             panelActionButtons.append(collapseBtn, expandBtn);
             searchAddContainer.append(addBtn, searchInput, panelActionButtons);
 
@@ -3513,11 +3517,11 @@
             panel.appendChild(content);
 
             postNavigator = document.createElement('div'); postNavigator.className = 'post-navigator';
-            const navToTop = document.createElement('button'); navToTop.id = 'nav-to-top'; navToTop.title = 'Scroll to Top';
-            const navUp = document.createElement('button'); navUp.id = 'nav-up'; navUp.title = 'Previous Post';
-            const navDown = document.createElement('button'); navDown.id = 'nav-down'; navDown.title = 'Next Post';
-            const navToBottom = document.createElement('button'); navToBottom.id = 'nav-to-bottom'; navToBottom.title = 'Scroll to Bottom';
-            const mainNavArrow = document.createElement('button'); mainNavArrow.className = 'main-nav-arrow'; mainNavArrow.title = 'Toggle Panel';
+            const navToTop = document.createElement('button'); navToTop.id = 'nav-to-top'; navToTop.title = i18nMessage('scrollTop', 'Scroll to Top');
+            const navUp = document.createElement('button'); navUp.id = 'nav-up'; navUp.title = i18nMessage('previousPost', 'Previous Post');
+            const navDown = document.createElement('button'); navDown.id = 'nav-down'; navDown.title = i18nMessage('nextPost', 'Next Post');
+            const navToBottom = document.createElement('button'); navToBottom.id = 'nav-to-bottom'; navToBottom.title = i18nMessage('scrollBottom', 'Scroll to Bottom');
+            const mainNavArrow = document.createElement('button'); mainNavArrow.className = 'main-nav-arrow'; mainNavArrow.title = i18nMessage('togglePanel', 'Toggle Panel');
             const mainNavIconContainer = document.createElement('div');
 
             copyResponseButton.classList.add('copy-btn');
@@ -3525,7 +3529,7 @@
             canvasButton.classList.add('canvas-shortcut-button');
             deepResearchButton.classList.add('deep-research-shortcut-button');
             attachmentPasteButton.classList.add('deep-research-shortcut-button');
-            searchInput.placeholder = 'Search prompts...';
+            searchInput.placeholder = i18nMessage('searchPrompts', 'Search prompts...');
             navToTop.appendChild(icons.navToTop.cloneNode(true));
             navUp.appendChild(icons.navUp.cloneNode(true));
             navDown.appendChild(icons.navDown.cloneNode(true));

@@ -1,6 +1,9 @@
 (function() {
   'use strict';
 
+  globalThis.GeminiBuddyI18n?.apply?.();
+  const msg = (key, fallback, substitutions) => globalThis.GeminiBuddyI18n?.get?.(key, fallback, substitutions) || fallback;
+
   const schema = globalThis.GeminiBuddyStorageSchema;
   if (!schema) throw new Error('GeminiBuddy storage schema is unavailable.');
 
@@ -64,7 +67,7 @@
     anchor.download = `geminibuddy-diagnostics-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
-    setStatus('Redacted diagnostics report downloaded', 'success');
+    setStatus(msg('statusDiagnosticsDownloaded', 'Redacted diagnostics report downloaded'), 'success');
   }
 
   async function renderDiagnostics() {
@@ -199,7 +202,7 @@
     gistFileNameEl.value = settings.gistFileName || 'gemini-prompts.json';
     marketplaceUrlEl.value = settings.marketplaceURL || '';
     allowedImportOriginsEl.value = (settings.allowedImportOrigins || []).join(', ');
-    setStatus(settingsState.migrated ? 'Migrated settings to the current storage schema' : 'Loaded from sync storage', 'success');
+    setStatus(settingsState.migrated ? msg('statusMigratedSettings', 'Migrated settings to the current storage schema') : msg('statusLoadedSync', 'Loaded from sync storage'), 'success');
   }
 
   async function savePromptsFromTextarea() {
@@ -207,7 +210,7 @@
     await setStoredValue(PROMPTS_KEY, JSON.stringify(prompts));
     promptsJsonEl.value = formatPrompts(prompts);
     const promptCount = Object.values(prompts).flat().length;
-    setStatus(`Saved ${promptCount} prompts`, 'success');
+    setStatus(`${msg('statusSavedPrompts', 'Saved prompts')} (${promptCount})`, 'success');
   }
 
   async function saveSettings() {
@@ -222,7 +225,7 @@
       allowedImportOrigins: normalizeAllowedImportOrigins(allowedImportOriginsEl.value)
     };
     await setStoredValue(SETTINGS_KEY, settings);
-    setStatus('Saved settings to sync storage', 'success');
+    setStatus(msg('statusSavedSettings', 'Saved settings to sync storage'), 'success');
   }
 
   async function exportPrompts() {
@@ -235,7 +238,7 @@
     anchor.download = 'geminibuddy-prompts.json';
     anchor.click();
     URL.revokeObjectURL(url);
-    setStatus(`Exported ${exportData.manifest.promptCount} verified prompts`, 'success');
+    setStatus(`${msg('statusExportedPrompts', 'Exported verified prompts')} (${exportData.manifest.promptCount})`, 'success');
   }
 
   function importPrompts(file) {
@@ -245,12 +248,12 @@
         const preview = await parsePromptImport(reader.result);
         const prompts = preview.prompts;
         promptsJsonEl.value = formatPrompts(prompts);
-        setStatus(`Dry-run import: ${preview.promptCount} prompts in ${preview.groupCount} groups; review and save to sync`, 'success');
+        setStatus(`${msg('statusDryRunImport', 'Dry-run import ready for review')} (${preview.promptCount} prompts, ${preview.groupCount} groups)`, 'success');
       } catch (error) {
         setStatus(error.message, 'error');
       }
     };
-    reader.onerror = () => setStatus('Could not read import file', 'error');
+    reader.onerror = () => setStatus(msg('statusCouldNotReadFile', 'Could not read import file'), 'error');
     reader.readAsText(file);
   }
 

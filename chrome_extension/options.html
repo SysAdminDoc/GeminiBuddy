@@ -3,78 +3,78 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GeminiBuddy Options</title>
+  <title data-i18n="optionsTitle">GeminiBuddy Options</title>
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <main class="shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">GeminiBuddy</p>
-        <h1>Options</h1>
+        <p class="eyebrow" data-i18n="extensionName">GeminiBuddy</p>
+        <h1 data-i18n="optionsHeading">Options</h1>
       </div>
-      <span id="status" class="status" role="status" aria-live="polite">Loaded from sync storage</span>
+      <span id="status" class="status" role="status" aria-live="polite" data-i18n="statusLoadedSync">Loaded from sync storage</span>
     </header>
 
     <section class="panel">
       <div class="section-heading">
-        <h2>Prompt Library</h2>
+        <h2 data-i18n="promptLibrary">Prompt Library</h2>
         <div class="actions">
-          <button id="reload-prompts" type="button">Reload</button>
-          <button id="save-prompts" type="button">Save</button>
-          <button id="export-prompts" type="button">Export</button>
+          <button id="reload-prompts" type="button" data-i18n="reload">Reload</button>
+          <button id="save-prompts" type="button" data-i18n="save">Save</button>
+          <button id="export-prompts" type="button" data-i18n="export">Export</button>
           <label class="file-action">
-            Import
+            <span data-i18n="import">Import</span>
             <input id="import-prompts" type="file" accept="application/json,.json">
           </label>
         </div>
       </div>
-      <textarea id="prompts-json" spellcheck="false" aria-label="Prompt JSON"></textarea>
+      <textarea id="prompts-json" spellcheck="false" aria-label="Prompt JSON" data-i18n-aria-label="promptJson"></textarea>
     </section>
 
     <section class="panel settings-grid">
       <div>
-        <h2>Panel Defaults</h2>
+        <h2 data-i18n="panelDefaults">Panel Defaults</h2>
         <label>
-          Theme
+          <span data-i18n="theme">Theme</span>
           <select id="theme-name">
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-            <option value="auto">Auto</option>
-            <option value="glass">Glass</option>
+            <option value="dark" data-i18n="dark">Dark</option>
+            <option value="light" data-i18n="light">Light</option>
+            <option value="auto" data-i18n="auto">Auto</option>
+            <option value="glass" data-i18n="glass">Glass</option>
           </select>
         </label>
         <label>
-          Position
+          <span data-i18n="position">Position</span>
           <select id="panel-position">
-            <option value="left">Left</option>
-            <option value="right">Right</option>
+            <option value="left" data-i18n="left">Left</option>
+            <option value="right" data-i18n="right">Right</option>
           </select>
         </label>
         <label>
-          Panel width
+          <span data-i18n="panelWidth">Panel width</span>
           <input id="panel-width" type="number" min="260" max="720" step="10">
         </label>
       </div>
 
       <div>
-        <h2>Sync Sources</h2>
+        <h2 data-i18n="syncSources">Sync Sources</h2>
         <label>
-          Gist URL
+          <span data-i18n="gistUrl">Gist URL</span>
           <input id="gist-url" type="url" placeholder="https://gist.github.com/...">
         </label>
         <label>
-          Gist file name
+          <span data-i18n="gistFileName">Gist file name</span>
           <input id="gist-file-name" type="text" placeholder="gemini-prompts.json">
         </label>
         <label>
-          Marketplace JSON URL
+          <span data-i18n="marketplaceJsonUrl">Marketplace JSON URL</span>
           <input id="marketplace-url" type="url" placeholder="https://example.com/prompts.json">
         </label>
         <label>
-          Allowed import origins
+          <span data-i18n="allowedImportOrigins">Allowed import origins</span>
           <input id="allowed-import-origins" type="text" placeholder="https://example.com, https://team.example">
-          <small>Only HTTPS origins. Built-in GeminiBuddy sources do not need to be listed.</small>
+          <small data-i18n="allowedImportOriginsHelp">Only HTTPS origins. Built-in GeminiBuddy sources do not need to be listed.</small>
         </label>
       </div>
     </section>
@@ -82,18 +82,19 @@
     <section class="panel">
       <div class="section-heading">
         <div>
-          <h2>Diagnostics &amp; Support</h2>
-          <p class="muted">Download a redacted report with version, storage, profile, selector, and recent error details. Prompt text and credentials are excluded.</p>
+          <h2 data-i18n="diagnosticsSupport">Diagnostics &amp; Support</h2>
+          <p class="muted" data-i18n="diagnosticsDescription">Download a redacted report with version, storage, profile, selector, and recent error details. Prompt text and credentials are excluded.</p>
         </div>
         <div class="actions">
-          <button id="refresh-diagnostics" type="button">Refresh</button>
-          <button id="export-diagnostics" type="button">Download diagnostics</button>
+          <button id="refresh-diagnostics" type="button" data-i18n="refresh">Refresh</button>
+          <button id="export-diagnostics" type="button" data-i18n="downloadDiagnostics">Download diagnostics</button>
         </div>
       </div>
-      <pre id="diagnostics-preview" class="diagnostics-output" role="region" aria-label="GeminiBuddy diagnostics report"></pre>
+    <pre id="diagnostics-preview" class="diagnostics-output" role="region" aria-label="GeminiBuddy diagnostics report" data-i18n-aria-label="diagnosticsReport"></pre>
     </section>
   </main>
 
+  <script src="i18n.js"></script>
   <script src="storage-schema.js"></script>
   <script src="options.js"></script>
 </body>
