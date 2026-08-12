@@ -8,6 +8,7 @@ test('version and storage contracts stay synchronized across source and packagin
   assert.strictEqual(result.storageKeys.prompts, 'gemini_custom_prompts_v6');
   assert.strictEqual(result.storageKeys.settings, 'gemini_panel_settings_v25');
   assert.strictEqual(result.storageKeys.history, 'gemini_prompt_history_v1');
+  assert.strictEqual(result.storageKeys.profiles, 'gemini_prompt_profiles_v1');
 });
 
 test('the local consistency helper rejects drift instead of choosing a winner', () => {

@@ -1,6 +1,6 @@
 // /src/main.js
 
-import { state, loadSettings, loadHistory } from './state.js';
+import { state, loadSettings, loadHistory, initializeProfiles } from './state.js';
 import { GM_addStyle } from './GM_wrappers.js';
 import { cssStyles } from './styles.js';
 import { icons } from './icons.js';
@@ -103,7 +103,6 @@ if (window.geminiPanelEnhanced) {
         GM_addStyle(cssStyles);
         await loadSettings();
         await loadHistory();
-        buildSettingsUI();
         
         const checkInterval = setInterval(async () => {
             const chatInterface = document.querySelector('main .chat-history');
@@ -112,6 +111,7 @@ if (window.geminiPanelEnhanced) {
                 clearInterval(checkInterval);
 
                 await buildMainUI();
+                buildSettingsUI();
                 initializeCopyActions();
                 initializeGenerationObserver();
 

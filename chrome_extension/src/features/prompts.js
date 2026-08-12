@@ -1,6 +1,6 @@
 // /src/features/prompts.js
 
-import { state, saveSettings, saveHistory, addHistoryEntry, savePromptRollbackSnapshot } from '../state.js';
+import { state, saveSettings, saveHistory, saveActiveProfilePrompts, addHistoryEntry, savePromptRollbackSnapshot } from '../state.js';
 import { GM_PROMPTS_KEY, GM_SETTINGS_KEY, LEGACY_PROMPT_KEYS } from '../config.js';
 import { GM_getValue, GM_setValue } from '../GM_wrappers.js';
 import { icons } from '../icons.js';
@@ -10,8 +10,9 @@ import { fetchDefaultPrompts } from './api.js';
 import { updateHandleHeight, sendPromptToGemini, renderMiniPanel } from '../ui/mainPanel.js';
 import { showPromptForm, showVersionHistory, showAIEnhancer } from '../ui/modals.js';
 
-export function savePrompts() {
-    GM_setValue(GM_PROMPTS_KEY, JSON.stringify(state.currentPrompts));
+export async function savePrompts() {
+    await GM_setValue(GM_PROMPTS_KEY, JSON.stringify(state.currentPrompts));
+    await saveActiveProfilePrompts();
 }
 
 export function ensurePromptIDs(prompts) {

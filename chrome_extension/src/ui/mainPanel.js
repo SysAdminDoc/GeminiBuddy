@@ -1,6 +1,6 @@
 // /src/ui/mainPanel.js
 
-import { state, saveSettings } from '../state.js';
+import { state, saveSettings, initializeProfiles } from '../state.js';
 import { icons } from '../icons.js';
 import { GM_SETTINGS_KEY } from '../config.js';
 import { createButtonWithIcon, showToast, showFatalErrorDialog } from '../utils.js';
@@ -316,10 +316,11 @@ export async function buildMainUI() {
         initResizeFunctionality();
         if (state.settings.gistURL) {
             await syncFromGist().catch(() => loadAndDisplayPrompts());
-        } else {
-            await loadAndDisplayPrompts();
-        }
-        applySettingsAndTheme();
+            } else {
+                await loadAndDisplayPrompts();
+            }
+            await initializeProfiles();
+            applySettingsAndTheme();
         updateNavigator();
 
     } catch (error) {

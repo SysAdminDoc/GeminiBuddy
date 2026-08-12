@@ -63,6 +63,10 @@
     const GM_SETTINGS_KEY = 'gemini_panel_settings_v25';
     const GM_LEGACY_PROMPT_KEYS = ['gemini_custom_prompts_v5', 'gemini_custom_prompts_v2'];
     const GM_LEGACY_SETTINGS_KEYS = ['gemini_panel_settings_v24'];
+    const GM_PROFILES_KEY = 'gemini_prompt_profiles_v1';
+    const GM_PROFILE_PROMPTS_PREFIX = 'gemini_prompt_profile_prompts_v1_';
+    const GM_PROFILE_SETTINGS_PREFIX = 'gemini_prompt_profile_settings_v1_';
+    const GM_PROFILE_HISTORY_PREFIX = 'gemini_prompt_profile_history_v1_';
     const STORAGE_MIGRATIONS = Object.freeze([
         Object.freeze({ currentKey: GM_PROMPTS_KEY, legacyKeys: GM_LEGACY_PROMPT_KEYS, kind: 'prompt-library' }),
         Object.freeze({ currentKey: GM_SETTINGS_KEY, legacyKeys: GM_LEGACY_SETTINGS_KEYS, kind: 'settings' })
@@ -87,6 +91,9 @@
     let settings = {};
     let secrets = { geminiAPIKey: '', gistToken: '' };
     let lastFetchedUrl = null;
+    let profileRegistry = { version: 1, activeProfileId: 'default', profiles: [] };
+    let profilesReady = false;
+    let detectedProfileAccountKey = '';
 
     const defaultSettings = {
         themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
@@ -239,6 +246,223 @@
         return [...new Set(input.map(value => getRemoteOrigin(String(value).trim())).filter(Boolean))];
     }
 
+    const PROFILE_SCHEMA_VERSION = 1;
+    function cloneProfileValue(value) {
+        return JSON.parse(JSON.stringify(value));
+    }
+    function profileStorageKey(prefix, profileId) {
+        return `${prefix}${profileId}`;
+    }
+    function profileIdFromName(name, prefix = 'manual') {
+        const slug = String(name || 'profile').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32) || 'profile';
+        return `${prefix}-${slug}-${Date.now().toString(36)}`;
+    }
+    function normalizeProfileSettings(raw) {
+        const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+        const next = { ...cloneProfileValue(defaultSettings), ...source };
+        next.colors = { ...defaultSettings.colors, ...(source.colors || {}) };
+        next.groupColors = source.groupColors && typeof source.groupColors === 'object' ? { ...source.groupColors } : {};
+        next.groupOrder = Array.isArray(source.groupOrder) ? [...source.groupOrder] : [];
+        next.tagOrder = Array.isArray(source.tagOrder) ? [...source.tagOrder] : [];
+        next.collapsedCategories = Array.isArray(source.collapsedCategories) ? [...source.collapsedCategories] : [];
+        next.favorites = Array.isArray(source.favorites) ? [...source.favorites] : [];
+        next.allowedImportOrigins = normalizeAllowedOrigins(source.allowedImportOrigins);
+        delete next.geminiAPIKey;
+        delete next.gistToken;
+        return next;
+    }
+    function safeProfileSettings(value) {
+        const next = cloneProfileValue(value || {});
+        delete next.geminiAPIKey;
+        delete next.gistToken;
+        return next;
+    }
+    function accountFingerprint(email) {
+        let hash = 2166136261;
+        for (const character of String(email || '').toLowerCase()) {
+            hash ^= character.charCodeAt(0);
+            hash = Math.imul(hash, 16777619);
+        }
+        return `account-${(hash >>> 0).toString(16)}`;
+    }
+    function detectGeminiAccount() {
+        const candidates = [
+            ...Array.from(document.querySelectorAll('[data-email], [data-identifier]')).flatMap(element => [element.dataset?.email, element.dataset?.identifier, element.getAttribute('data-email'), element.getAttribute('data-identifier')]),
+            ...Array.from(document.querySelectorAll('[aria-label*="@"], img[alt*="@"]')).flatMap(element => [element.getAttribute('aria-label'), element.getAttribute('alt')])
+        ];
+        for (const candidate of candidates) {
+            const match = String(candidate || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+            if (match) return { key: accountFingerprint(match[0]), label: match[0].toLowerCase() };
+        }
+        return { key: '', label: '' };
+    }
+    function normalizeProfileRegistry(raw) {
+        const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+        const profiles = [];
+        const seen = new Set();
+        (Array.isArray(source.profiles) ? source.profiles : []).forEach(profile => {
+            const id = String(profile?.id || '').replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 80);
+            if (!id || seen.has(id)) return;
+            seen.add(id);
+            profiles.push({
+                id,
+                name: String(profile.name || id).trim().slice(0, 80) || id,
+                accountKey: String(profile.accountKey || ''),
+                accountLabel: String(profile.accountLabel || ''),
+                source: ['default', 'account', 'manual', 'imported'].includes(profile.source) ? profile.source : 'manual',
+                createdAt: Number(profile.createdAt) || Date.now(),
+                updatedAt: Number(profile.updatedAt) || Date.now()
+            });
+        });
+        if (!profiles.some(profile => profile.id === 'default')) profiles.unshift({ id: 'default', name: 'Default', accountKey: '', accountLabel: '', source: 'default', createdAt: Date.now(), updatedAt: Date.now() });
+        const activeProfileId = profiles.some(profile => profile.id === source.activeProfileId) ? source.activeProfileId : profiles[0].id;
+        return { version: PROFILE_SCHEMA_VERSION, activeProfileId, profiles };
+    }
+    function activePromptProfile() {
+        return profileRegistry.profiles.find(profile => profile.id === profileRegistry.activeProfileId) || profileRegistry.profiles[0] || null;
+    }
+    async function loadPromptProfileSnapshot(profileId) {
+        let prompts = await GM_getValue(profileStorageKey(GM_PROFILE_PROMPTS_PREFIX, profileId), null);
+        const rawSettings = await GM_getValue(profileStorageKey(GM_PROFILE_SETTINGS_PREFIX, profileId), null);
+        const history = await GM_getValue(profileStorageKey(GM_PROFILE_HISTORY_PREFIX, profileId), null);
+        if (typeof prompts === 'string') {
+            try { prompts = JSON.parse(prompts); } catch (_error) { prompts = {}; }
+        }
+        if (!prompts || typeof prompts !== 'object' || Array.isArray(prompts)) prompts = {};
+        return {
+            prompts: cloneProfileValue(prompts),
+            settings: normalizeProfileSettings(rawSettings),
+            history: history && typeof history === 'object' && !Array.isArray(history) ? cloneProfileValue(history) : {}
+        };
+    }
+    async function savePromptProfileSnapshot(profileId, snapshot) {
+        await Promise.all([
+            GM_setValue(profileStorageKey(GM_PROFILE_PROMPTS_PREFIX, profileId), snapshot.prompts || {}),
+            GM_setValue(profileStorageKey(GM_PROFILE_SETTINGS_PREFIX, profileId), safeProfileSettings(snapshot.settings)),
+            GM_setValue(profileStorageKey(GM_PROFILE_HISTORY_PREFIX, profileId), snapshot.history || {})
+        ]);
+    }
+    async function savePromptProfileRegistry() {
+        await GM_setValue(GM_PROFILES_KEY, profileRegistry);
+    }
+    async function saveActivePromptProfile() {
+        if (!profilesReady) return;
+        await savePromptProfileSnapshot(profileRegistry.activeProfileId, { prompts: currentPrompts, settings, history: promptHistory });
+        const active = activePromptProfile();
+        if (active) active.updatedAt = Date.now();
+        await savePromptProfileRegistry();
+    }
+    async function initializePromptProfiles() {
+        const storedRegistry = await GM_getValue(GM_PROFILES_KEY, null);
+        const hadRegistry = storedRegistry && typeof storedRegistry === 'object' && !Array.isArray(storedRegistry);
+        const registry = normalizeProfileRegistry(storedRegistry);
+        const detected = detectGeminiAccount();
+        let active = registry.profiles.find(profile => profile.id === registry.activeProfileId);
+        const matchingAccount = detected.key ? registry.profiles.find(profile => profile.accountKey === detected.key) : null;
+        if (matchingAccount) {
+            if (registry.activeProfileId !== matchingAccount.id) registry.activeProfileId = matchingAccount.id;
+            active = matchingAccount;
+        } else if (detected.key && active && !active.accountKey && active.source === 'default' && registry.profiles.length === 1) {
+            active.accountKey = detected.key;
+            active.accountLabel = detected.label;
+        } else if (detected.key && !matchingAccount && hadRegistry) {
+            const accountProfile = { id: profileIdFromName(detected.label || 'account', 'account'), name: detected.label ? `Account (${detected.label})` : 'Google account', accountKey: detected.key, accountLabel: detected.label, source: 'account', createdAt: Date.now(), updatedAt: Date.now() };
+            registry.profiles.push(accountProfile);
+            registry.activeProfileId = accountProfile.id;
+            active = accountProfile;
+        }
+        active = registry.profiles.find(profile => profile.id === registry.activeProfileId) || registry.profiles[0];
+        const existingPrompts = await GM_getValue(profileStorageKey(GM_PROFILE_PROMPTS_PREFIX, active.id), null);
+        if (existingPrompts === null || typeof existingPrompts === 'undefined') {
+            const seedCurrent = !hadRegistry || (active.id === 'default' && registry.profiles.length === 1);
+            await savePromptProfileSnapshot(active.id, seedCurrent ? { prompts: currentPrompts, settings, history: promptHistory } : { prompts: {}, settings: defaultSettings, history: {} });
+        }
+        profileRegistry = registry;
+        detectedProfileAccountKey = detected.key;
+        profilesReady = true;
+        const snapshot = await loadPromptProfileSnapshot(registry.activeProfileId);
+        currentPrompts = snapshot.prompts;
+        settings = snapshot.settings;
+        promptHistory = snapshot.history;
+        await Promise.all([
+            GM_setValue(GM_PROMPTS_KEY, JSON.stringify(currentPrompts)),
+            GM_setValue(GM_SETTINGS_KEY, settings),
+            GM_setValue(GM_HISTORY_KEY, promptHistory),
+            savePromptProfileRegistry()
+        ]);
+        return activePromptProfile();
+    }
+    async function switchPromptProfile(profileId) {
+        if (!profilesReady) throw new Error('Profiles are not initialized.');
+        const target = profileRegistry.profiles.find(profile => profile.id === profileId);
+        if (!target) throw new Error('Profile not found.');
+        if (target.id === profileRegistry.activeProfileId) return target;
+        await saveActivePromptProfile();
+        profileRegistry.activeProfileId = target.id;
+        const snapshot = await loadPromptProfileSnapshot(target.id);
+        currentPrompts = snapshot.prompts;
+        settings = snapshot.settings;
+        promptHistory = snapshot.history;
+        await savePromptProfileRegistry();
+        await Promise.all([GM_setValue(GM_PROMPTS_KEY, JSON.stringify(currentPrompts)), GM_setValue(GM_SETTINGS_KEY, settings), GM_setValue(GM_HISTORY_KEY, promptHistory)]);
+        return target;
+    }
+    async function createManualPromptProfile(name) {
+        const normalizedName = String(name || '').trim().slice(0, 80);
+        if (!normalizedName) throw new Error('Profile name is required.');
+        if (profileRegistry.profiles.some(profile => profile.name.toLowerCase() === normalizedName.toLowerCase())) throw new Error('A profile with that name already exists.');
+        await saveActivePromptProfile();
+        const profile = { id: profileIdFromName(normalizedName), name: normalizedName, accountKey: '', accountLabel: '', source: 'manual', createdAt: Date.now(), updatedAt: Date.now() };
+        profileRegistry.profiles.push(profile);
+        await savePromptProfileSnapshot(profile.id, { prompts: {}, settings: defaultSettings, history: {} });
+        await savePromptProfileRegistry();
+        await switchPromptProfile(profile.id);
+        return profile;
+    }
+    async function deleteActivePromptProfile() {
+        if (profileRegistry.profiles.length <= 1) throw new Error('At least one profile must remain.');
+        const removedId = profileRegistry.activeProfileId;
+        await saveActivePromptProfile();
+        profileRegistry.profiles = profileRegistry.profiles.filter(profile => profile.id !== removedId);
+        const next = profileRegistry.profiles[0];
+        profileRegistry.activeProfileId = next.id;
+        const remove = typeof GM_deleteValue === 'function' ? [GM_deleteValue(profileStorageKey(GM_PROFILE_PROMPTS_PREFIX, removedId)), GM_deleteValue(profileStorageKey(GM_PROFILE_SETTINGS_PREFIX, removedId)), GM_deleteValue(profileStorageKey(GM_PROFILE_HISTORY_PREFIX, removedId))] : [];
+        await Promise.all([...remove, savePromptProfileRegistry()]);
+        const snapshot = await loadPromptProfileSnapshot(next.id);
+        currentPrompts = snapshot.prompts;
+        settings = snapshot.settings;
+        promptHistory = snapshot.history;
+        await Promise.all([GM_setValue(GM_PROMPTS_KEY, JSON.stringify(currentPrompts)), GM_setValue(GM_SETTINGS_KEY, settings), GM_setValue(GM_HISTORY_KEY, promptHistory), savePromptProfileRegistry()]);
+        return next;
+    }
+    async function exportPromptProfiles(scope = 'active') {
+        await saveActivePromptProfile();
+        const selected = scope === 'all' ? profileRegistry.profiles : [activePromptProfile()];
+        const profiles = [];
+        for (const profile of selected.filter(Boolean)) {
+            const snapshot = await loadPromptProfileSnapshot(profile.id);
+            profiles.push({ ...profile, prompts: snapshot.prompts, settings: safeProfileSettings(snapshot.settings), history: snapshot.history });
+        }
+        return { kind: 'geminibuddy-profiles', schemaVersion: PROFILE_SCHEMA_VERSION, exportedAt: new Date().toISOString(), activeProfileId: profileRegistry.activeProfileId, profiles };
+    }
+    async function importPromptProfiles(payload) {
+        if (!payload || payload.kind !== 'geminibuddy-profiles' || payload.schemaVersion !== PROFILE_SCHEMA_VERSION || !Array.isArray(payload.profiles) || payload.profiles.length === 0) throw new Error('Invalid GeminiBuddy profile export.');
+        const imported = [];
+        for (const entry of payload.profiles) {
+            const name = String(entry.name || 'Imported profile').trim().slice(0, 80) || 'Imported profile';
+            let candidate = name;
+            let suffix = 2;
+            while (profileRegistry.profiles.some(profile => profile.name.toLowerCase() === candidate.toLowerCase())) candidate = `${name} (${suffix++})`;
+            const profile = { id: profileIdFromName(candidate, 'imported'), name: candidate, accountKey: '', accountLabel: '', source: 'imported', createdAt: Date.now(), updatedAt: Date.now() };
+            profileRegistry.profiles.push(profile);
+            const prompts = entry.prompts && typeof entry.prompts === 'object' && !Array.isArray(entry.prompts) ? entry.prompts : {};
+            await savePromptProfileSnapshot(profile.id, { prompts, settings: entry.settings, history: entry.history });
+            imported.push(profile);
+        }
+        await savePromptProfileRegistry();
+        return imported;
+    }
+
     function isBuiltinRemoteUrl(value) {
         return BUILTIN_REMOTE_ORIGINS.includes(getRemoteOrigin(value));
     }
@@ -263,6 +487,7 @@
     }
     async function saveSettings() {
         await GM_setValue(GM_SETTINGS_KEY, settings);
+        if (profilesReady) await GM_setValue(profileStorageKey(GM_PROFILE_SETTINGS_PREFIX, profileRegistry.activeProfileId), safeProfileSettings(settings));
     }
 
     // Debounced save for high-frequency operations (drag, resize, scroll position)
@@ -274,8 +499,9 @@
             _debouncedSaveTimer = null;
         }, delay);
     }
-    function savePrompts() {
-        GM_setValue(GM_PROMPTS_KEY, JSON.stringify(currentPrompts));
+    async function savePrompts() {
+        await GM_setValue(GM_PROMPTS_KEY, JSON.stringify(currentPrompts));
+        if (profilesReady) await GM_setValue(profileStorageKey(GM_PROFILE_PROMPTS_PREFIX, profileRegistry.activeProfileId), cloneProfileValue(currentPrompts));
     }
 
     async function savePromptRollbackSnapshot(reason) {
@@ -427,6 +653,7 @@
     // --- VERSION HISTORY ---
     async function loadHistory() {
         promptHistory = await GM_getValue(GM_HISTORY_KEY, {});
+        if (profilesReady) await GM_setValue(profileStorageKey(GM_PROFILE_HISTORY_PREFIX, profileRegistry.activeProfileId), cloneProfileValue(promptHistory));
     }
     async function saveHistory() {
         await GM_setValue(GM_HISTORY_KEY, promptHistory);
@@ -2145,6 +2372,112 @@
         profileBtnGroup.append(techProfileBtn, creativeProfileBtn);
         profilesContent.appendChild(createSettingRow('profiles', 'Preset Profiles', 'Quickly reorder groups for a specific task.', profileBtnGroup));
 
+        const profileSelect = document.createElement('select');
+        profileSelect.id = 'prompt-profile-select';
+        profileRegistry.profiles.forEach(profile => {
+            const option = document.createElement('option');
+            option.value = profile.id;
+            option.textContent = profile.accountKey ? `${profile.name} · detected account` : profile.name;
+            profileSelect.appendChild(option);
+        });
+        profileSelect.value = profileRegistry.activeProfileId;
+        profileSelect.addEventListener('change', async event => {
+            try {
+                await switchPromptProfile(event.target.value);
+                renderAllPrompts();
+                applySettingsAndTheme();
+                populateSettingsModal(form);
+                showToast(`Switched to ${activePromptProfile().name}.`, 2200, 'success');
+            } catch (error) {
+                profileSelect.value = profileRegistry.activeProfileId;
+                showToast(error.message, 3000, 'error');
+            }
+        });
+        profilesContent.appendChild(createSettingRow('prompt-profile-select', 'Active Prompt Profile', 'Profiles isolate prompts, settings, and history for each account or workspace.', profileSelect));
+
+        const profileDataActions = document.createElement('div');
+        profileDataActions.className = 'button-group';
+        const newProfileButton = createButtonWithIcon('New Profile', null);
+        newProfileButton.type = 'button';
+        newProfileButton.addEventListener('click', async () => {
+            const name = await showTextInputDialog({ title: 'Create prompt profile', message: 'Use a name such as Work or Personal.', label: 'Profile name', confirmLabel: 'Create' });
+            if (!name) return;
+            try {
+                await createManualPromptProfile(name);
+                renderAllPrompts();
+                applySettingsAndTheme();
+                populateSettingsModal(form);
+                showToast(`Created ${activePromptProfile().name}.`, 2200, 'success');
+            } catch (error) {
+                showToast(error.message, 3000, 'error');
+            }
+        });
+        const deleteProfileButton = createButtonWithIcon('Delete Current', null);
+        deleteProfileButton.type = 'button';
+        deleteProfileButton.addEventListener('click', async () => {
+            const shouldDelete = await showDecisionDialog({ title: 'Delete profile?', message: `Delete the ${activePromptProfile().name} profile and its prompts?`, confirmLabel: 'Delete', destructive: true });
+            if (!shouldDelete) return;
+            try {
+                await deleteActivePromptProfile();
+                renderAllPrompts();
+                applySettingsAndTheme();
+                populateSettingsModal(form);
+            } catch (error) {
+                showToast(error.message, 3000, 'error');
+            }
+        });
+        const exportCurrentButton = createButtonWithIcon('Export Current', null);
+        exportCurrentButton.type = 'button';
+        exportCurrentButton.addEventListener('click', async () => {
+            try {
+                const data = await exportPromptProfiles('active');
+                const anchor = document.createElement('a');
+                anchor.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
+                anchor.download = `${activePromptProfile().name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-profile.json`;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+            } catch (error) { showToast(error.message, 3000, 'error'); }
+        });
+        const exportAllButton = createButtonWithIcon('Export All', null);
+        exportAllButton.type = 'button';
+        exportAllButton.addEventListener('click', async () => {
+            try {
+                const data = await exportPromptProfiles('all');
+                const anchor = document.createElement('a');
+                anchor.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
+                anchor.download = 'geminibuddy-profiles.json';
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+            } catch (error) { showToast(error.message, 3000, 'error'); }
+        });
+        const importLabel = document.createElement('label');
+        importLabel.className = 'gemini-prompt-panel-button';
+        importLabel.textContent = 'Import Profiles';
+        const importInput = document.createElement('input');
+        importInput.type = 'file';
+        importInput.accept = 'application/json,.json';
+        importInput.style.display = 'none';
+        importLabel.appendChild(importInput);
+        importInput.addEventListener('change', event => {
+            const [file] = event.target.files || [];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    const imported = await importPromptProfiles(JSON.parse(reader.result));
+                    populateSettingsModal(form);
+                    showToast(`Imported ${imported.length} profile${imported.length === 1 ? '' : 's'}.`, 2500, 'success');
+                } catch (error) { showToast(error.message, 3000, 'error'); }
+            };
+            reader.onerror = () => showToast('Could not read profile export.', 3000, 'error');
+            reader.readAsText(file);
+            event.target.value = '';
+        });
+        profileDataActions.append(newProfileButton, deleteProfileButton, exportCurrentButton, exportAllButton, importLabel);
+        profilesContent.appendChild(createSettingRow('profile-data-actions', 'Profile Data', 'Export one profile or a complete profile backup; imports merge without overwriting existing profiles.', profileDataActions));
+
         const groupOrderLabel = document.createElement('h4');
         groupOrderLabel.textContent = 'Manual Group Order';
         groupOrderLabel.style.marginTop = '15px';
@@ -3155,6 +3488,7 @@
             } else {
                 await loadAndDisplayPrompts();
             }
+            await initializePromptProfiles();
             await importPromptFromShareLinkIfPresent();
             await runPendingGemPromptIfNeeded();
             applySettingsAndTheme();

@@ -1,8 +1,8 @@
 // /src/ui/settingsUI.js
 
-import { state, saveSettings, saveSecrets, clearSecret } from '../state.js';
+import { state, saveSettings, saveSecrets, clearSecret, getActiveProfile, switchProfile, createManualProfile, deleteActiveProfile, exportProfiles, importProfiles } from '../state.js';
 import { icons } from '../icons.js';
-import { capitalizeFirstLetter, installModalAccessibility, openAccessibleModal, closeAccessibleModal } from '../utils.js';
+import { capitalizeFirstLetter, installModalAccessibility, openAccessibleModal, closeAccessibleModal, showTextInputDialog, showDecisionDialog, showToast } from '../utils.js';
 import { presetThemes, FULL_WIDTH_STYLE_ID, FULL_WIDTH_CSS } from '../config.js';
 import { applySettingsAndTheme, renderActionButtons, renderAllPrompts } from './mainPanel.js';
 import { syncFromGist } from '../features/api.js';
@@ -130,6 +130,16 @@ export function buildSettingsUI() {
 
 function applySettingsTheme() {
     document.documentElement.classList.toggle('settings-light-theme', state.settings.settingsTheme === 'light');
+}
+
+function downloadJson(filename, value) {
+    const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
 }
 
 function createSettingRow(id, label, description, control) {
@@ -285,6 +295,101 @@ function populateSettingsPanes() {
             saveSettings();
         })
     ));
+    const profileSelect = document.createElement('select');
+    profileSelect.id = 'setting-profile';
+    state.profileRegistry.profiles.forEach(profile => {
+        const option = document.createElement('option');
+        option.value = profile.id;
+        option.textContent = profile.accountKey ? `${profile.name} · detected account` : profile.name;
+        profileSelect.appendChild(option);
+    });
+    profileSelect.value = state.profileRegistry.activeProfileId;
+    profileSelect.addEventListener('change', async event => {
+        try {
+            await switchProfile(event.target.value);
+            renderAllPrompts();
+            applySettingsAndTheme();
+            populateSettingsPanes();
+            showToast(`Switched to ${getActiveProfile().name}.`, 2200, 'success');
+        } catch (error) {
+            showToast(error.message, 3000, 'error');
+            profileSelect.value = state.profileRegistry.activeProfileId;
+        }
+    });
+    panes.prompts.appendChild(createSettingRow('setting-profile', 'Active Profile', 'Profiles isolate prompts, settings, and history for each account or workspace.', profileSelect));
+
+    const profileActions = document.createElement('div');
+    profileActions.className = 'button-group';
+    const newProfileBtn = document.createElement('button');
+    newProfileBtn.type = 'button';
+    newProfileBtn.className = 'settings-styled-button';
+    newProfileBtn.textContent = 'New Profile';
+    newProfileBtn.addEventListener('click', async () => {
+        const name = await showTextInputDialog({ title: 'Create prompt profile', message: 'Use a name such as Work or Personal.', label: 'Profile name', confirmLabel: 'Create' });
+        if (!name) return;
+        try {
+            await createManualProfile(name);
+            renderAllPrompts();
+            applySettingsAndTheme();
+            populateSettingsPanes();
+            showToast(`Created ${getActiveProfile().name}.`, 2200, 'success');
+        } catch (error) {
+            showToast(error.message, 3000, 'error');
+        }
+    });
+    const deleteProfileBtn = document.createElement('button');
+    deleteProfileBtn.type = 'button';
+    deleteProfileBtn.className = 'settings-styled-button';
+    deleteProfileBtn.textContent = 'Delete Current';
+    deleteProfileBtn.addEventListener('click', async () => {
+        const shouldDelete = await showDecisionDialog({ title: 'Delete profile?', message: `Delete the ${getActiveProfile().name} profile and its prompts?`, confirmLabel: 'Delete', destructive: true });
+        if (!shouldDelete) return;
+        try {
+            await deleteActiveProfile();
+            renderAllPrompts();
+            applySettingsAndTheme();
+            populateSettingsPanes();
+        } catch (error) {
+            showToast(error.message, 3000, 'error');
+        }
+    });
+    const exportProfileBtn = document.createElement('button');
+    exportProfileBtn.type = 'button';
+    exportProfileBtn.className = 'settings-styled-button';
+    exportProfileBtn.textContent = 'Export Current';
+    exportProfileBtn.addEventListener('click', () => exportProfiles('active').then(data => downloadJson(`${getActiveProfile().name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-profile.json`, data)).catch(error => showToast(error.message, 3000, 'error')));
+    const exportAllProfilesBtn = document.createElement('button');
+    exportAllProfilesBtn.type = 'button';
+    exportAllProfilesBtn.className = 'settings-styled-button';
+    exportAllProfilesBtn.textContent = 'Export All';
+    exportAllProfilesBtn.addEventListener('click', () => exportProfiles('all').then(data => downloadJson('geminibuddy-profiles.json', data)).catch(error => showToast(error.message, 3000, 'error')));
+    const importProfilesLabel = document.createElement('label');
+    importProfilesLabel.className = 'settings-styled-button';
+    importProfilesLabel.textContent = 'Import Profiles';
+    const importProfilesInput = document.createElement('input');
+    importProfilesInput.type = 'file';
+    importProfilesInput.accept = 'application/json,.json';
+    importProfilesInput.style.display = 'none';
+    importProfilesLabel.appendChild(importProfilesInput);
+    importProfilesInput.addEventListener('change', event => {
+        const [file] = event.target.files || [];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                const imported = await importProfiles(JSON.parse(reader.result));
+                populateSettingsPanes();
+                showToast(`Imported ${imported.length} profile${imported.length === 1 ? '' : 's'}.`, 2500, 'success');
+            } catch (error) {
+                showToast(error.message, 3000, 'error');
+            }
+        };
+        reader.onerror = () => showToast('Could not read profile export.', 3000, 'error');
+        reader.readAsText(file);
+        event.target.value = '';
+    });
+    profileActions.append(newProfileBtn, deleteProfileBtn, exportProfileBtn, exportAllProfilesBtn, importProfilesLabel);
+    panes.prompts.appendChild(createSettingRow('profile-actions', 'Profile Data', 'Export one profile or a complete profile backup; imports are merged without overwriting existing profiles.', profileActions));
     panes.prompts.appendChild(createSettingRow('setting-show-tags', 'Show Prompt Tags', 'Displays tags underneath each prompt button in the panel.',
         createToggle('setting-show-tags', state.settings.showTags, (e) => {
             state.settings.showTags = e.target.checked;
