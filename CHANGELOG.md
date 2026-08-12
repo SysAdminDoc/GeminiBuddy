@@ -2,7 +2,7 @@
 
 All notable changes to GeminiBuddy will be documented in this file.
 
-## [Unreleased]
+## [v54.0.0] - 2026-08-12
 
 - Repaired MV3 options storage schema drift with grouped prompt handling, chunk-safe settings migration, and shared storage keys.
 - Limited remote access to built-in GitHub/Google origins, with explicit HTTPS origin allowlists and optional MV3 host permissions for custom imports.

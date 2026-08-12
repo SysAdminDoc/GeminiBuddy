@@ -1,6 +1,6 @@
 {
   "name": "geminibuddy-extension",
-  "version": "53.0.0",
+  "version": "54.0.0",
   "private": true,
   "scripts": {
     "build": "node build-extension.js",

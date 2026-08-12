@@ -1,6 +1,6 @@
 # Gemini Prompt Panel
 
-![Version](https://img.shields.io/badge/version-v53.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
+![Version](https://img.shields.io/badge/version-v54.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
 
 A highly configurable, auto-hiding, lockable, slide-out panel that remembers its position, with draggable prompts, themes, import/export, and more for Gemini.
 
@@ -246,6 +246,10 @@ Google AI API keys and GitHub Gist tokens are stored separately in local-only se
 -----
 
 ## Changelog
+
+### [54.0.0] - 2026-08-12
+
+  * Added storage hardening, trusted marketplace catalogs, isolated profiles, diagnostics, accessible controls, a Chrome side panel, and localized MV3 UI with release gates.
 
 ### [53.0.0] - 2026-06-27
 

@@ -298,7 +298,7 @@ async function main() {
     await pageSession.send('Page.navigate', { url: `${fixtureUrl}?smoke=ready` });
     try {
       await waitForExpression(pageSession, "document.documentElement.dataset.geminibuddySmoke === 'loaded'", 10000);
-      await waitForExpression(pageSession, "Boolean(document.querySelector('#gemini-prompt-panel-main'))", 15000);
+      await waitForExpression(pageSession, "Boolean(document.querySelector('#gemini-prompt-panel-main') && document.querySelector('.prompt-button'))", 15000);
     } catch (error) {
       const pageState = await evaluate(pageSession, `({
         title: document.title,

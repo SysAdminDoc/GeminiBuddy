@@ -1,7 +1,7 @@
 // /src/config.js
 
 export const DEFAULT_PROMPTS_URL = "https://raw.githubusercontent.com/SysAdminDoc/Gemini-Prompt-Panel/refs/heads/main/Prompts/defaultpromptlist.json";
-export const PROJECT_VERSION = '53.0.0';
+export const PROJECT_VERSION = '54.0.0';
 export const GM_PROMPTS_KEY = 'gemini_custom_prompts_v6';
 export const GM_SETTINGS_KEY = 'gemini_panel_settings_v25';
 export const GM_HISTORY_KEY = 'gemini_prompt_history_v1';

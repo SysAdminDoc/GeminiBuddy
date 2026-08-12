@@ -1,7 +1,7 @@
 (function(global) {
   'use strict';
 
-  const PROJECT_VERSION = '53.0.0';
+  const PROJECT_VERSION = '54.0.0';
   const PROMPTS_KEY = 'gemini_custom_prompts_v6';
   const SETTINGS_KEY = 'gemini_panel_settings_v25';
   const HISTORY_KEY = 'gemini_prompt_history_v1';

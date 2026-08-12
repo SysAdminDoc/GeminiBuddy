@@ -13,7 +13,7 @@ test('version and storage contracts stay synchronized across source and packagin
 
 test('the local consistency helper rejects drift instead of choosing a winner', () => {
   assert.throws(
-    () => assertSynchronizedValues(['53.0.0', '52.0.0'], 'Version'),
+    () => assertSynchronizedValues(['54.0.0', '53.0.0'], 'Version'),
     /Version drift detected/
   );
 });

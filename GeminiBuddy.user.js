@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      53.0.0
+// @version      54.0.0
 // @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
@@ -33,7 +33,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    const PROJECT_VERSION = '53.0.0';
+    const PROJECT_VERSION = '54.0.0';
     console.log(`Gemini Prompt Panel Enhancer v${PROJECT_VERSION} loaded`);
 
     // --- TRUSTED TYPES POLICY ---
