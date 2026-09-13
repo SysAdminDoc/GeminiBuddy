@@ -43,6 +43,7 @@ copyFile(path.join(extensionDir, 'sidepanel.js'), path.join(unpackedDir, 'sidepa
 fs.cpSync(path.join(extensionDir, '_locales'), path.join(unpackedDir, '_locales'), { recursive: true });
 copyFile(path.join(rootDir, 'GeminiBuddy.user.js'), path.join(unpackedDir, 'GeminiBuddy.user.js'));
 copyFile(path.join(rootDir, 'icon.png'), path.join(unpackedDir, 'icon.png'));
+fs.cpSync(path.join(extensionDir, 'icons'), path.join(unpackedDir, 'icons'), { recursive: true });
 
 execFileSync('C:\\Windows\\System32\\tar.exe', ['-a', '-c', '-f', zipPath, '-C', unpackedDir, '.'], {
   stdio: 'inherit'

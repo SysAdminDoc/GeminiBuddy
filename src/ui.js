@@ -76,7 +76,7 @@ function applyStyles() {
         }
         /* Panel & Handle */
         .gemini-prompt-panel { font-size: var(--base-font-size); position: fixed; top: var(--panel-top, 90px); z-index: 9999; background: var(--panel-bg); color: var(--panel-text); border: 1px solid var(--panel-border); border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); display: flex; flex-direction: column; font-family: var(--panel-font); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; width: var(--panel-width, 320px); box-sizing: border-box; max-height: 85vh; }
-        .gemini-prompt-panel.glass-theme { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .gemini-prompt-panel.glass-theme { background: rgba(11,18,32,0.96); }
         .gemini-prompt-panel.left-side { left: 0; transform: translateX(-100%); }
         .gemini-prompt-panel.right-side{ right:0; transform: translateX(100%); }
         .gemini-prompt-panel.visible { transform: translateX(0); }
@@ -183,7 +183,7 @@ function applyStyles() {
         .gemini-prompt-panel.right-side ~ .post-navigator .main-nav-arrow { right: calc(var(--panel-width, 320px) - (var(--nav-btn-size) / 2)); }
         .gemini-prompt-panel.right-side:not(.visible) ~ .post-navigator .main-nav-arrow { right: calc(var(--handle-width, 8px) - (var(--nav-btn-size) / 2)); }
         /* Modals, Toast, Settings */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); z-index: 10000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); z-index: 10000; display: none; align-items: center; justify-content: center; }
         .modal-content { font-family: var(--panel-font); background: var(--modal-content-bg); color: var(--panel-text); padding: 20px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 90%; max-width: 600px; position: relative; display: flex; flex-direction: column; max-height: 90vh; font-size: var(--base-font-size); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; flex-shrink: 0; }
         .modal-title { font-size: calc(var(--base-font-size) + 4px); font-weight: bold; }

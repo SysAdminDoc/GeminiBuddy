@@ -1,0 +1,29 @@
+GeminiBuddy marketing asset manifest
+Date: 2026-09-13
+
+Selected public assets
+
+banner.png
+README hero. Captured from source/hero.html at 1600 by 900. Contains no release number.
+
+icon.png
+Transparent 1024 by 1024 brand master.
+
+chrome_extension/icons/
+Installable browser icon set at 16, 32, 48, 64, 128, 256, 512, and 1024 pixels.
+
+screenshots/injected-panel.png
+The injected panel running in a controlled Gemini-style local fixture at 1440 by 900.
+
+screenshots/side-panel.png
+The browser side panel at 420 by 900.
+
+screenshots/options.png
+The extension options page at 1440 by 900.
+
+Archive structure
+
+originals contains the starting README, icon, logo prompt pack, and baseline screenshots.
+logo-concepts contains every generated logo pass and the selected transparent master.
+selected contains exact copies of the approved icon and hero.
+source contains the repeatable screenshot and hero capture files.

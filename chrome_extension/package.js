@@ -1,7 +1,7 @@
 {
   "name": "geminibuddy-userscript",
-  "version": "54.0.0",
-  "description": "A modular userscript for Gemini, built with Webpack.",
+  "version": "54.0.1",
+  "description": "Save, organize, sync, and run reusable prompts beside Gemini.",
   "private": true,
   "scripts": {
     "build": "webpack --mode=production"

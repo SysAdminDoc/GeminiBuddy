@@ -1,9 +1,10 @@
 {
   "name": "geminibuddy-extension",
-  "version": "54.0.0",
+  "version": "54.0.1",
   "private": true,
   "scripts": {
     "build": "node build-extension.js",
+    "release": "node build-release.mjs",
     "smoke": "node ../tests/mv3-smoke.js",
     "check:i18n": "node i18n-check.js"
   }

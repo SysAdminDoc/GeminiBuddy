@@ -1,0 +1,30 @@
+GeminiBuddy marketing audit
+Date: 2026-09-13
+
+Audience
+
+Gemini users who keep reusable prompts and want them close to the conversation. The secondary audience is browser extension users who need profiles, backups, and optional sync without another hosted account.
+
+Evidence reviewed
+
+1. The injected prompt panel running against a controlled Gemini-style local fixture.
+2. The browser side panel at a 420 by 900 viewport.
+3. The options page at a 1440 by 900 viewport.
+4. The previous README, original icon, extension package, and install flow.
+
+Findings and resolution
+
+1. The README had placeholder screenshot copy and no useful product proof. It now opens with one branded hero and follows with three real product captures.
+2. The original icon mixed a tiny wordmark with the symbol, which became muddy at toolbar sizes. The selected mark keeps the established blue and cyan identity, removes the wordmark, and stays recognizable at 16 through 128 pixels.
+3. The injected panel relied on a loud multicolor action and weak visual hierarchy. The revised panel uses one calm accent system, stronger grouping, visible focus states, and clearer controls.
+4. The side panel opened on the editor instead of the saved library. The library now comes first, and its narrow layout was checked for clipping and horizontal overflow.
+5. The options page exposed useful controls in a visually raw layout. The revised surface separates settings, data, and diagnostics with clearer hierarchy.
+6. The install story was hard to evaluate. The README now explains the ZIP, userscript, permissions, privacy model, and local verification commands.
+
+Quality gate
+
+Pass. The hero contains no release number, appears once in README.md, and uses the selected mark plus current product captures. Screenshots were captured with a clean temporary browser profile and do not touch the normal browser profile or active display.
+
+Evidence limits
+
+The Gemini page capture uses a controlled local fixture so it stays repeatable and does not expose a personal account. It proves extension injection, layout, prompt rendering, and browser initialization. It does not claim that every selector on the live Gemini service is permanent.

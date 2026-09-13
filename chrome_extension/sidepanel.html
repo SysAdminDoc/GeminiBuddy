@@ -9,11 +9,14 @@
 <body>
   <main class="side-panel" aria-labelledby="side-panel-title">
     <header class="panel-header">
-      <div>
-        <p class="eyebrow" data-i18n="extensionName">GeminiBuddy</p>
-        <h1 id="side-panel-title" data-i18n="sidepanelTitle">Prompt library</h1>
+      <div class="brand-heading">
+        <img class="brand-mark" src="icon.png" alt="">
+        <div>
+          <p class="eyebrow" data-i18n="extensionName">GeminiBuddy</p>
+          <h1 id="side-panel-title" data-i18n="sidepanelTitle">Prompt library</h1>
+        </div>
       </div>
-      <button id="refresh-button" type="button" title="Reload prompts">↻</button>
+      <button id="refresh-button" type="button" title="Reload prompts" data-i18n="refresh">Refresh</button>
     </header>
 
     <label class="field-label" for="profile-select" data-i18n="profile">Profile</label>
@@ -21,6 +24,9 @@
 
     <label class="field-label" for="search-input" data-i18n="search">Search</label>
     <input id="search-input" type="search" placeholder="Search prompts…" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <div id="prompt-list" class="prompt-list" aria-live="polite"></div>
 
     <section class="editor" aria-labelledby="editor-title">
       <div class="section-heading">
@@ -36,8 +42,6 @@
       <button id="save-prompt" class="primary" type="button" data-i18n="addPrompt">Add prompt</button>
     </section>
 
-    <p id="status" class="status" role="status" aria-live="polite"></p>
-    <div id="prompt-list" class="prompt-list" aria-live="polite"></div>
   </main>
   <script src="i18n.js"></script>
   <script src="sidepanel.js"></script>

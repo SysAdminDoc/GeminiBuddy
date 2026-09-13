@@ -1,0 +1,29 @@
+GeminiBuddy logo concept prompts
+
+Shared production requirements
+
+Create a true transparent PNG in RGBA format. Every pixel outside the mark must have alpha set to zero. Do not draw a checkerboard, solid canvas, app tile, watermark, screenshot, or decorative background. Keep the mark readable at 16 pixels and clean enough for a 1024 pixel master. Avoid Google's star symbol, protected logos, mascots, and brand lockups.
+
+1. Minimal mark
+
+Design a premium minimal logo for GeminiBuddy, a reusable prompt library that lives beside Gemini. Preserve the idea of one flowing letter G joined to a decisive check mark. Use precise vector-like geometry, generous negative space, and a strong silhouette. Color the upper stroke in electric blue and let it transition to cyan at the check. No text.
+
+2. App icon
+
+Design a polished commercial app icon mark for GeminiBuddy. Build one compact interlocking symbol from an open G and a forward check, with restrained depth and crisp edges. Use deep blue and cyan with subtle highlights. The mark must work in a browser toolbar without a surrounding square or circle. No text.
+
+3. Wordmark
+
+Create a custom wordmark for the exact text "GeminiBuddy" with the selected open G and check symbol placed to the left. Use a confident geometric sans serif, careful kerning, and a restrained blue to cyan accent. It should feel credible in a software company header and stay readable against both dark and light surfaces.
+
+4. Emblem
+
+Create a compact emblem for GeminiBuddy using the open G and check concept as the central shape. Add only enough line structure to suggest an organized prompt library. Keep the outline balanced and avoid shields, seals, ribbons, or a filled background plate. Use blue and cyan. No text.
+
+5. Abstract direction
+
+Create an abstract mark for GeminiBuddy that shows a reusable prompt moving from a library into a conversation. Use two connected strokes and one check-like terminal shape. Favor a memorable silhouette over literal chat bubbles or browser windows. Use electric blue and cyan with no text.
+
+Selected refinement prompt
+
+Refine the existing blue and cyan GeminiBuddy monogram into one production-ready browser extension icon. Keep the recognizable open G flowing into a check mark. Remove the old wordmark and every background pixel. Tighten the curves, balance the stroke weight, simplify highlights, and preserve a clean silhouette from 16 through 1024 pixels. Export one centered 1024 by 1024 RGBA PNG with true transparency.

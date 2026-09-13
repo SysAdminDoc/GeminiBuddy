@@ -3,13 +3,14 @@ dist/
 *.bak
 .env
 *.log
+*.pem
 CLAUDE.md
 
 # Markdown files local-only (except README)
 *.md
 !README.md
 
-# AI config
+# Local project context
 CODEX_CHANGELOG.md
 AGENTS.md
 .claude/

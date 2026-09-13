@@ -1,309 +1,116 @@
-# Gemini Prompt Panel
+![GeminiBuddy: your prompt library beside Gemini](banner.png)
 
-![Version](https://img.shields.io/badge/version-v54.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-JavaScript-lightgrey)
+# GeminiBuddy
 
-A highly configurable, auto-hiding, lockable, slide-out panel that remembers its position, with draggable prompts, themes, import/export, and more for Gemini.
+[![Version](https://img.shields.io/badge/version-v54.0.1-blue)](https://github.com/SysAdminDoc/GeminiBuddy/releases/latest) [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE) [![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Edge%20%7C%20Firefox-5b8def)](#install) [![Userscript](https://img.shields.io/badge/userscript-Tampermonkey%20%7C%20Violentmonkey-16a34a)](#userscript)
 
------
+GeminiBuddy keeps reusable prompts beside Gemini, where they're easy to search, edit, and run. Use the in-page panel for fast prompt work or open the browser side panel when you want your library without covering the conversation.
 
-## Introduction
+[Download the browser extension](https://github.com/SysAdminDoc/GeminiBuddy/releases/latest/download/geminibuddy-mv3-v54.0.1.zip) · [Install the userscript](https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/main/GeminiBuddy.user.js) · [Report a problem](https://github.com/SysAdminDoc/GeminiBuddy/issues)
 
-The **Gemini Prompt Panel** is a browser extension that enhances the user experience on the Gemini website by adding a versatile and feature-rich slide-out panel. The primary motivation behind this extension is to boost productivity by providing quick access to frequently used prompts and actions, while being unobtrusive. The core purpose is to offer a highly customizable and persistent interface for managing and using prompts efficiently.
+## Why GeminiBuddy
 
------
+Prompt libraries usually end up in a notes app, a document, or an old chat. GeminiBuddy puts them back in the work:
 
-## Features
+- Search and run saved prompts without leaving Gemini.
+- Keep separate libraries and settings in account-aware or manual profiles.
+- Chain follow-up prompts and pass the previous response into the next step.
+- Sync through browser storage, a GitHub Gist, JSON backups, or approved prompt catalogs.
 
-### **Configurable Slide-Out Panel**
+## See it in action
 
-  * **What it does:** Adds a panel that can be positioned on the left or right side of the screen.
-  * **How it improves the target interface:** The panel can be locked in place or set to auto-hide, ensuring it doesn't obstruct the main content while remaining easily accessible.
-  * **Example usage:**
-    ```javascript
-    // The panel's position and visibility are managed through CSS classes
-    .gemini-prompt-panel.left-side { left: 0; }
-    .gemini-prompt-panel.right-side { right: 0; }
-    .gemini-prompt-panel.visible { transform: translateX(0); }
-    ```
+### Work from the Gemini page
 
-### **Prompt Management**
+The slide-out panel stays tucked against either edge until you need it. Pin it open, filter the library, launch a saved prompt, or reach Canvas and Deep Research from the same surface.
 
-  * **What it does:** Allows users to create, save, and manage a list of custom prompts.
-  * **How it improves the target interface:** Users can quickly insert pre-defined text into the Gemini prompt input, with an option to automatically send the prompt.
-  * **Example usage:**
-    ```javascript
-    // Default prompts array
-    const DEFAULT_PROMPTS = [
-        { name: 'Explain Code', text: 'Explain this code line by line:', autoSend: false },
-        { name: 'Refactor Code', text: 'Refactor this code to be more efficient:', autoSend: true }
-    ];
-    ```
+![GeminiBuddy prompt panel running beside a Gemini-style local fixture](concepts/marketing/2026-09-13/screenshots/injected-panel.png)
 
-### **Chained Prompt Workflows**
+### Browse prompts from the browser side panel
 
-  * **What it does:** Lets a saved prompt define follow-up steps that run after Gemini finishes responding.
-  * **How it improves the target interface:** Multi-step workflows can pass the previous response into the next prompt using `{previous_response}`.
+Saved prompts appear before the editor, so the first thing you see is the library you came to use. Pick a profile, search, run a prompt, or add another one.
 
-### **Model Shortcuts**
+![GeminiBuddy browser side panel with reusable prompts](concepts/marketing/2026-09-13/screenshots/side-panel.png)
 
-  * **What it does:** Adds panel buttons for Gemini 1.5 Flash, 2.0 Pro, and 2.5 Pro.
-  * **How it improves the target interface:** Users can switch models from the prompt panel without hunting through Gemini's header.
+### Manage sync and backups
 
-### **Canvas Shortcut**
+The options page exposes the underlying prompt JSON, panel defaults, approved import origins, and redacted diagnostics.
 
-  * **What it does:** Adds a panel button that selects Gemini Canvas mode for the current prompt.
-  * **How it improves the target interface:** Canvas can be activated from the prompt panel before sending a drafted prompt.
+![GeminiBuddy options page](concepts/marketing/2026-09-13/screenshots/options.png)
 
-### **Gem Trigger**
+## Install
 
-  * **What it does:** Lets a saved prompt store a Gemini Gem URL and open that Gem before inserting or sending the prompt.
-  * **How it improves the target interface:** Persona-specific prompts can route themselves to the matching Gem without manual navigation.
+### Browser extension
 
-### **Deep Research Launcher**
+The ZIP is the normal self-hosted install:
 
-  * **What it does:** Adds a panel button that selects Gemini Deep Research and launches it when the composer already has text.
-  * **How it improves the target interface:** Research prompts can move from drafting to Deep Research without leaving the prompt panel.
+1. Download [geminibuddy-mv3-v54.0.1.zip](https://github.com/SysAdminDoc/GeminiBuddy/releases/latest/download/geminibuddy-mv3-v54.0.1.zip).
+2. Extract it to a folder you plan to keep.
+3. Open your browser's extensions page and turn on Developer mode.
+4. Choose **Load unpacked**, then select the extracted folder.
 
-### **Clipboard Attachment Paste**
+In Chrome or Edge, the toolbar button opens GeminiBuddy's side panel. The same package injects the slide-out prompt panel on `gemini.google.com`.
 
-  * **What it does:** Adds a panel button that reads file/image clipboard items and dispatches them to Gemini's composer.
-  * **How it improves the target interface:** Screenshots and copied files can be attached from the prompt panel without manual upload steps.
+The release also includes a CRX3 file for managed Chromium installs and compatible browsers. Modern Chrome and Edge normally reject drag-and-drop installation of self-hosted CRX files, so the ZIP remains the recommended choice.
 
-### **Bidirectional Gist Sync**
+### Userscript
 
-  * **What it does:** Supports pulling prompts from a Gist and pushing local prompt changes back with a GitHub token.
-  * **How it improves the target interface:** Prompt libraries can be backed up and shared from the same panel workflow.
+1. Install Tampermonkey or Violentmonkey.
+2. Open [GeminiBuddy.user.js](https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/main/GeminiBuddy.user.js).
+3. Approve the install in your userscript manager.
+4. Visit [Gemini](https://gemini.google.com/).
 
-### **Prompt Marketplace Import**
+The userscript includes update and download URLs, so compatible managers can check this repository for new releases.
 
-  * **What it does:** Imports remote curated prompt JSON lists with PromptCompanion-style fields.
-  * **How it improves the target interface:** Teams can seed the panel from shared marketplace catalogs without manual JSON file handling.
+## What it can do
 
-### **Share Links**
+| Area | What you get |
+| --- | --- |
+| Prompt library | Groups, tags, favorites, pinning, search, drag ordering, import, export, and share links |
+| Prompt workflows | Optional auto-send, chained steps, previous-response handoff, Gem URLs, and prompt history |
+| Gemini controls | Model shortcuts, Canvas, Deep Research, clipboard attachments, response copy, and code copy |
+| Profiles | Account-aware and manual profiles with separate prompts, settings, and history |
+| Sync | Browser sync storage, Gist pull and push, approved marketplace catalogs, and JSON backups |
+| Support | Redacted diagnostics with version, storage, profile, selector, and recent error details |
 
-  * **What it does:** Generates copyable prompt URLs that import a single prompt when opened on Gemini.
-  * **How it improves the target interface:** Individual prompts can be shared with teammates without exchanging full backup files.
+## Privacy and permissions
 
-### **MV3 Extension Build**
+GeminiBuddy doesn't require a hosted account. Prompts stay in browser-managed storage unless you choose to import, export, share, or sync them.
 
-  * **What it does:** Builds a Chrome/Firefox MV3 extension package from the userscript with GM compatibility shims, an options page, and `chrome.storage.sync` prompt storage.
-  * **How it improves the target interface:** Users can install GeminiBuddy as an unpacked extension or ZIP package, keep prompts synced across browser profiles, open a native Chrome side panel for browsing and editing prompts, and use the localized extension UI (English is the default locale).
+API keys and GitHub tokens use local-only secret storage. They aren't included in prompt exports. The extension requests access to Gemini plus the GitHub and Google endpoints used by its optional sync and API features. Custom catalog origins require an explicit HTTPS allowlist or a one-time browser permission.
 
-### **Draggable Prompts**
+GeminiBuddy is an independent open-source project. It isn't affiliated with or endorsed by Google.
 
-  * **What it does:** The order of the prompt buttons can be rearranged via drag and drop.
-  * **How it improves the target interface:** This allows users to prioritize and organize their prompts for a more personalized and efficient workflow.
+## Build and verify
 
-### **Themes**
+Requirements: Node.js 20 or newer, plus Chrome or Edge for the clean-profile browser check.
 
-  * **What it does:** The panel supports light, dark, and auto-detect themes.
-  * **How it improves the target interface:** This ensures the panel's appearance is consistent with the Gemini website's theme or the user's preference, providing a seamless visual experience.
+```powershell
+node chrome_extension/build-release.mjs
+node chrome_extension/i18n-check.js
+node --test tests/*.test.js
+node tests/mv3-smoke.js
+```
 
-### **Import/Export and Reset**
+The release build creates an unpacked extension, versioned ZIP, signed CRX3, and SHA-256 manifest under `chrome_extension/dist`. The first release build creates a local self-host key, and later builds reuse it so the extension ID stays stable.
 
-  * **What it does:** Users can import prompts from a JSON file, export their current prompts to a backup file, and reset the prompts to the default settings.
-  * **How it improves the target interface:** This makes it easy to share prompt collections and manage custom prompts across different browsers or installations.
+The smoke check uses a temporary browser profile and a local Gemini-style fixture. It doesn't touch your normal browser profile or active window.
 
------
+## Project layout
 
-## Installation
-
-### Prerequisites
-
-  * A modern web browser that supports userscripts (e.g., Chrome, Firefox, Edge).
-  * A userscript manager extension such as **Tampermonkey** or **Greasemonkey**.
-
-### Step-by-step instructions
-
-1.  **Install a Userscript Manager:** If you don't have one, install a userscript manager like Tampermonkey for your browser.
-2.  **Install the Script:**
-      * Navigate to the `GeminiBuddy.user.js` file in this repository.
-      * Click the "Raw" button to view the raw file content.
-      * Your userscript manager should automatically detect the userscript and prompt you to install it.
-      * Click "Install" to add the Gemini Prompt Panel to your browser.
-3.  **Developer Mode (for local development):**
-      * Clone this repository to your local machine.
-      * Open the Tampermonkey dashboard in your browser.
-      * Go to the "Utilities" tab.
-      * Under "File", use "Choose File" to import the `GeminiBuddy.user.js` from your local clone.
-4.  **MV3 Extension Build:**
-      * Run `node chrome_extension/build-extension.js`.
-      * Run `node chrome_extension/i18n-check.js` to verify every extension message has a localized English entry.
-      * Run `node tests/mv3-smoke.js` to load the unpacked build in a clean Chromium profile and exercise a mocked Gemini host. Set `GEMINIBUDDY_CHROME` to a Chromium executable when the system browser blocks unpacked-extension flags.
-      * Load `chrome_extension/dist/geminibuddy-mv3` as an unpacked extension, or use the generated ZIP in `chrome_extension/dist`.
-      * In Chrome or Edge, click the GeminiBuddy toolbar action to open the prompt library side panel; prompt cards use the same synced profiles as the in-page panel.
-
------
-
-## Usage
-
-Once installed, the Gemini Prompt Panel will automatically appear on the Gemini website (`https://gemini.google.com/*`).
-
-  * **Activation:** Hover your mouse over the handle on the left or right edge of the screen to reveal the panel.
-  * **Locking:** Click the lock icon in the panel header to keep the panel permanently visible.
-  * **Using Prompts:** Click on any prompt button to insert its text into the Gemini input field. If 'auto-send' is enabled for that prompt, it will also be submitted automatically.
-  * **Adding a New Prompt:** Click the "Add New Prompt" button to open a form where you can define a new prompt.
-
------
-
-## Configuration
-
-The panel's settings can be accessed by clicking the gear icon in the header.
-
-  * **Theme:** Choose between "Auto", "Light", and "Dark" themes.
-  * **Panel Position:** Set the panel to appear on the "Left" or "Right" side of the screen.
-  * **Prompt Management:**
-      * **Import:** Import prompts from a `.json` file.
-      * **Export:** Export your current prompts to a `gemini-prompts-backup.json` file.
-      * **Reset:** Reset your prompts to the default settings.
-
-Settings and prompts are stored in your browser's local storage using the following keys:
-
-  * `gemini_custom_prompts_v2`
-  * `gemini_panel_theme`
-  * `gemini_panel_position`
-  * `gemini_panel_position_top`
-
-Remote marketplace and JSON imports are limited to the built-in GitHub/Google sources by default. For another HTTPS catalog, add its origin to the **Allowed import origins** setting; the MV3 extension can alternatively request a one-time optional host permission from the browser.
-
-Google AI API keys and GitHub Gist tokens are stored separately in local-only secret storage. They are migrated out of older settings records, excluded from prompt/settings exports, and can be cleared from the settings UI.
-
------
-
-## Screenshots
-
-*(Here you would include screenshots or animated GIFs of the panel in action, for example: `![Panel Screenshot](screenshots/panel.png)`)*
-
------
-
-## Architecture
-
-### File and folder layout
-
-  * `GeminiBuddy.user.js`: The main userscript file containing all the JavaScript code for the extension.
-  * `chrome_extension/manifest.json`: MV3 package metadata for Chrome and Firefox.
-  * `chrome_extension/gm-shim.js`: Compatibility bridge from `GM_*` calls to `chrome.storage.sync` and extension fetch.
-  * `chrome_extension/options.html`: Extension options page for sync-backed prompt and settings management.
-  * `README.md`: The file you are currently reading.
-
-### Core modules and their responsibilities
-
-  * **UI Builder (`build...` functions):** A set of functions responsible for creating the HTML elements for the panel, settings modal, and prompt form.
-  * **State Manager:** The script uses global variables and `GM_setValue`/`GM_getValue` to manage the state of prompts, theme, and panel position.
-  * **Event Handlers:** Various event listeners for mouse interactions (click, drag, hover), and a `MutationObserver` to detect when new code blocks or responses are added to the page.
-
------
-
-## API / Function Reference
-
-### `createAndAppendPanel()`
-
-  * **Parameters:** None
-  * **Return value:** `void`
-  * **Purpose:** The main function that initializes and builds the entire prompt panel, appends it to the DOM, and sets up all event listeners.
-
-### `sendPromptToGemini(text, sendPrompt)`
-
-  * **Parameters:**
-      * `text` (string): The prompt text to be inserted.
-      * `sendPrompt` (boolean): If `true`, the prompt is automatically sent.
-  * **Return value:** `void`
-  * **Purpose:** Injects the prompt text into the Gemini chat input and optionally clicks the send button.
-
-### `savePrompts()`
-
-  * **Parameters:** None
-  * **Return value:** `void`
-  * **Purpose:** Saves the current array of prompts to the browser's storage using `GM_setValue`.
-
-### `loadAndDisplayPrompts()`
-
-  * **Parameters:** None
-  * **Return value:** `void`
-  * **Purpose:** Loads the prompts from storage using `GM_getValue`, populates the panel with the prompt buttons.
-
------
+| Path | Purpose |
+| --- | --- |
+| `GeminiBuddy.user.js` | Installable userscript and MV3 content script |
+| `chrome_extension/` | Manifest, side panel, options page, storage bridge, and packaging |
+| `Prompts/defaultpromptlist.json` | Default prompt library |
+| `tests/` | Storage, accessibility, workflow, security, and clean-profile checks |
+| `concepts/marketing/2026-09-13/` | Selected marketing assets, starting screenshots, rejected concepts, source, and review notes |
 
 ## Contributing
 
-### How to report issues
+Open an issue with your browser version, install method, and a short set of reproduction steps. Pull requests should keep the userscript, MV3 package, version strings, and tests in sync.
 
-  * Please use the GitHub issue tracker for this repository.
-  * When reporting a bug, include your browser and userscript manager versions, and provide steps to reproduce the issue.
-
-### How to submit pull requests
-
-  * Fork the repository and create a new branch for your feature or bug fix.
-  * Follow the existing coding style.
-  * Submit a pull request with a clear description of your changes.
-
-### Coding style guidelines
-
-  * The project follows a standard JavaScript coding style.
-  * Use meaningful variable and function names.
-  * Comment complex sections of code.
-
------
-
-## Changelog
-
-### [54.0.0] - 2026-08-12
-
-  * Added storage hardening, trusted marketplace catalogs, isolated profiles, diagnostics, accessible controls, a Chrome side panel, and localized MV3 UI with release gates.
-
-### [53.0.0] - 2026-06-27
-
-  * Added a Chrome/Firefox MV3 extension build with GM compatibility shims, sync-backed storage, an options page, and ZIP packaging.
-
-### [52.0.0] - 2026-06-27
-
-  * Added per-prompt share links that import shared prompts from URL hashes.
-
-### [51.0.0] - 2026-06-27
-
-  * Added remote prompt marketplace JSON import with flexible PromptCompanion-style field mapping.
-
-### [50.0.0] - 2026-06-27
-
-  * Added token-backed push support for bidirectional GitHub Gist prompt sync.
-
-### [49.0.0] - 2026-06-27
-
-  * Added clipboard attachment paste for image/file clipboard items.
-
-### [48.0.0] - 2026-06-27
-
-  * Added a Deep Research launcher that selects Gemini Deep Research and sends the current prompt when ready.
-
-### [47.0.0] - 2026-06-27
-
-  * Added per-prompt Gem URLs that navigate to the target Gem and replay the prompt after Gemini initializes.
-
-### [46.0.0] - 2026-06-27
-
-  * Added a Canvas shortcut button that activates Gemini Canvas mode for the current prompt.
-
-### [45.0.0] - 2026-06-27
-
-  * Added quick model-switch buttons for Gemini 1.5 Flash, 2.0 Pro, and 2.5 Pro.
-
-### [44.0.0] - 2026-06-27
-
-  * Added chained prompt workflows with follow-up steps and previous-response handoff.
-  * Fixed clipboard access by separating the post navigator state from `window.navigator`.
-
-### [10.6] - 2025-07-12
-
-  * Initial release of the Gemini Prompt Panel.
-
------
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
-This project is licensed under the MIT License.
-
------
-
-## Disclosure
-
-This userscript is not officially affiliated with, endorsed by, or in any way associated with Google or the Gemini project. It is an independent, open-source tool created to enhance the user experience.
+[MIT](LICENSE)

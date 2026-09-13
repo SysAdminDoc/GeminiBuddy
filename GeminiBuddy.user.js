@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         GeminiBuddy
 // @namespace    https://github.com/SysAdminDoc/GeminiBuddy
-// @version      54.0.0
-// @description  Dual-mode panel for Chat & VEO prompts, with profiles, UI refinements, and new functions.
+// @version      54.0.1
+// @description  Save, organize, sync, and run reusable prompts beside Gemini.
 // @author       Matthew Parker
 // @match        https://gemini.google.com/*
-// @icon         https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/refs/heads/main/assets/favicon/favicon.svg
+// @icon         https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/refs/heads/main/icon.png
 // @grant        GM_addStyle
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -33,8 +33,7 @@
         return;
     }
     window.geminiPanelEnhanced = true;
-    const PROJECT_VERSION = '54.0.0';
-    console.log(`Gemini Prompt Panel Enhancer v${PROJECT_VERSION} loaded`);
+    const PROJECT_VERSION = '54.0.1';
 
     // --- TRUSTED TYPES POLICY ---
     // Gemini runs under a Trusted Types CSP; this policy wraps innerHTML writes
@@ -138,15 +137,15 @@
 
     const defaultSettings = {
         themeName: 'dark', position: 'left', topOffset: '90px', panelWidth: 320, handleWidth: 8, handleStyle: 'classic',
-        fontFamily: 'Verdana, sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
+        fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', enableFullWidth: true, baseFontSize: '14px', condensedMode: false,
         collapsedCategories: [], favorites: [], groupOrder: [], tagOrder: [], initiallyCollapsed: false, copyButtonOrderSwapped: false,
         showTags: true, showPins: true, enableAIenhancer: true, gistURL: '', gistFileName: 'gemini-prompts.json', marketplaceURL: '', marketplaceCatalogs: [], allowedImportOrigins: [],
         enableMiniMode: true, groupByTags: true, autoCopyCodeOnCompletion: true,
         groupColors: {},
         colors: {
-            '--panel-bg': '#2a2a2e', '--panel-text': '#e0e0e0', '--panel-header-bg': '#3a3a3e', '--panel-border': '#4a4a4e',
-            '--input-bg': '#3c3c41', '--input-text': '#f0f0f0', '--input-border': '#5a5a5e',
-            '--handle-color': '#28a745', '--handle-hover-color': '#34c759', '--favorite-color': '#FFD700', '--pin-color': '#34c759', '--ai-color': '#8A2BE2'
+            '--panel-bg': '#0b1220', '--panel-text': '#e8f1ff', '--panel-header-bg': '#111c30', '--panel-border': '#27405f',
+            '--input-bg': '#0f1a2c', '--input-text': '#f7fbff', '--input-border': '#315173',
+            '--handle-color': '#22d3ee', '--handle-hover-color': '#67e8f9', '--favorite-color': '#fbbf24', '--pin-color': '#34d399', '--ai-color': '#a78bfa'
         }
     };
     // Dark-mode sync helper: detect system color scheme
@@ -165,9 +164,9 @@
             '--handle-color': '#007aff', '--handle-hover-color': '#0095ff', '--favorite-color': '#ffab00', '--pin-color': '#34c759', '--ai-color': '#5856d6'
         },
         glass: {
-            '--panel-bg': 'rgba(30, 30, 35, 0.6)', '--panel-text': '#f5f5f5', '--panel-header-bg': 'rgba(58, 58, 62, 0.7)', '--panel-border': 'rgba(255, 255, 255, 0.2)',
-            '--input-bg': 'rgba(0, 0, 0, 0.25)', '--input-text': '#f5f5f5', '--input-border': 'rgba(255, 255, 255, 0.3)',
-            '--handle-color': '#00ffc8', '--handle-hover-color': '#60ffdf', '--favorite-color': '#FFD700', '--pin-color': '#34c759', '--ai-color': '#bf5af2'
+            '--panel-bg': 'rgba(11, 18, 32, 0.96)', '--panel-text': '#f5f9ff', '--panel-header-bg': 'rgba(17, 28, 48, 0.98)', '--panel-border': 'rgba(103, 232, 249, 0.28)',
+            '--input-bg': 'rgba(7, 17, 30, 0.96)', '--input-text': '#f5f9ff', '--input-border': 'rgba(103, 232, 249, 0.35)',
+            '--handle-color': '#22d3ee', '--handle-hover-color': '#a5f3fc', '--favorite-color': '#fbbf24', '--pin-color': '#34d399', '--ai-color': '#c4b5fd'
         },
         hacker: {
             '--panel-bg': '#0a0a0a', '--panel-text': '#00ff41', '--panel-header-bg': '#1a1a1a', '--panel-border': '#00ff41',
@@ -780,21 +779,21 @@
     function applyStyles() {
         GM_addStyle(`
         :root {
-            --panel-font: Verdana, sans-serif;
+            --panel-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             --base-font-size: 14px;
             --panel-padding: 12px;
             --panel-gap: 10px;
             --btn-padding: 8px 12px;
-            --panel-bg: #2a2a2e; --panel-text: #e0e0e0; --panel-header-bg: #3a3a3e; --panel-border: #4a4a4e;
-            --input-bg: #3c3c41; --input-text: #f0f0f0; --input-border: #5a5a5e;
-            --btn-green-grad-start: #28a745; --btn-green-grad-end: #218838; --btn-green-border: #1e7e34;
-            --handle-color: #28a745; --handle-hover-color: #34c759; --favorite-color: #FFD700; --pin-color: #34c759; --ai-color: #8A2BE2;
-            --modal-bg: rgba(0, 0, 0, 0.7); --modal-content-bg: #2c2c30;
-            --nav-btn-size: 36px; --tag-bg: #555; --tag-text: #ddd;
+            --panel-bg: #0b1220; --panel-text: #e8f1ff; --panel-header-bg: #111c30; --panel-border: #27405f;
+            --input-bg: #0f1a2c; --input-text: #f7fbff; --input-border: #315173;
+            --btn-green-grad-start: #2563eb; --btn-green-grad-end: #0891b2; --btn-green-border: #38bdf8;
+            --handle-color: #22d3ee; --handle-hover-color: #67e8f9; --favorite-color: #fbbf24; --pin-color: #34d399; --ai-color: #a78bfa;
+            --modal-bg: rgba(2, 6, 23, 0.78); --modal-content-bg: #0b1220;
+            --nav-btn-size: 36px; --tag-bg: #172844; --tag-text: #c7d8ed;
         }
         /* Panel & Handle */
-        .gemini-prompt-panel { font-size: var(--base-font-size); position: fixed; top: var(--panel-top, 90px); z-index: 9999; background: var(--panel-bg); color: var(--panel-text); border: 1px solid var(--panel-border); border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); display: flex; flex-direction: column; font-family: var(--panel-font); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; width: var(--panel-width, 320px); box-sizing: border-box; max-height: 85vh; }
-        .gemini-prompt-panel.glass-theme { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .gemini-prompt-panel { font-size: var(--base-font-size); position: fixed; top: var(--panel-top, 90px); z-index: 9999; overflow: hidden; background: var(--panel-bg); color: var(--panel-text); border: 1px solid var(--panel-border); border-radius: 16px; box-shadow: 0 24px 70px rgba(2,6,23,0.58), 0 0 0 1px rgba(56,189,248,0.05); display: flex; flex-direction: column; font-family: var(--panel-font); transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; width: var(--panel-width, 320px); box-sizing: border-box; max-height: 82vh; }
+        .gemini-prompt-panel.glass-theme { background: rgba(11,18,32,0.96); }
         .gemini-prompt-panel.left-side { left: 0; transform: translateX(-100%); }
         .gemini-prompt-panel.right-side{ right:0; transform: translateX(100%); }
         .gemini-prompt-panel.visible { transform: translateX(0); }
@@ -808,23 +807,24 @@
         .gemini-resize-handle { position: absolute; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 10; }
         .gemini-resize-handle.left-handle { left: -3px; }
         .gemini-resize-handle.right-handle { right: -3px; }
-        .gemini-prompt-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 8px var(--panel-padding); background: var(--panel-header-bg); cursor: grab; font-weight: bold; position: relative; border-bottom: 1px solid var(--panel-border); }
-        .panel-header-controls { display:flex; gap:2px; align-items: center; }
-        .panel-header-controls button { background: transparent; border: none; color: var(--panel-text); cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; }
-        .panel-header-controls button:hover { background-color: rgba(255,255,255,0.1); }
+        .gemini-prompt-panel-header { display: flex; justify-content: space-between; align-items: center; min-height: 52px; padding: 9px var(--panel-padding); background: linear-gradient(180deg, var(--panel-header-bg), var(--panel-bg)); cursor: grab; font-weight: bold; position: relative; border-bottom: 1px solid var(--panel-border); }
+        .panel-header-controls { display:flex; gap:4px; align-items: center; }
+        .panel-header-controls button { width: 30px; height: 30px; background: transparent; border: 1px solid transparent; color: var(--panel-text); cursor: pointer; padding: 5px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background-color 0.16s, border-color 0.16s; }
+        .panel-header-controls button:hover { background-color: rgba(56,189,248,0.10); border-color: rgba(56,189,248,0.28); }
         /* --- START: VEO MODULE CSS --- */
         .panel-mode-selector {
             background-color: var(--input-bg);
             color: var(--input-text);
             border: 1px solid var(--input-border);
-            border-radius: 4px;
-            padding: 4px 6px;
+            border-radius: 8px;
+            padding: 6px 9px;
             font-family: var(--panel-font);
             font-size: calc(var(--base-font-size) - 2px);
             margin: 0 10px;
         }
         .panel-mode-selector:focus {
-            outline: 1px solid var(--handle-color);
+            outline: 3px solid rgba(56,189,248,0.32);
+            outline-offset: 2px;
         }
         .veo-prompt-card {
             background: #3a3a3e;
@@ -871,17 +871,17 @@
             height: 16px;
         }
         /* --- END: VEO MODULE CSS --- */
-        .gemini-prompt-panel-content { padding:var(--panel-padding); display:flex; flex-direction:column; gap:var(--panel-gap); flex-grow: 1; overflow: hidden; }
+        .gemini-prompt-panel-content { padding:var(--panel-padding); display:flex; flex-direction:column; gap:var(--panel-gap); flex-grow: 1; overflow: hidden; background: linear-gradient(180deg, rgba(37,99,235,0.025), transparent 34%); }
         .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         #panel-action-buttons { margin-top: 8px; }
         .model-shortcut-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-        .model-shortcut-button { padding: 6px 4px; font-size: calc(var(--base-font-size) - 2px); background: var(--panel-header-bg); border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; min-width: 0; }
-        .canvas-shortcut-button, .deep-research-shortcut-button { grid-column: 1 / -1; background: var(--panel-header-bg); border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; }
-        .gemini-prompt-panel-button { border: 1px solid; color: white; padding: var(--btn-padding); border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: calc(var(--base-font-size) - 1px); font-weight: 500; cursor: pointer; transition: all .2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
-        .gemini-prompt-panel-button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .model-shortcut-button { padding: 7px 4px; font-size: calc(var(--base-font-size) - 2px); background: #12213a; border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; min-width: 0; }
+        .canvas-shortcut-button, .deep-research-shortcut-button { grid-column: 1 / -1; background: #12213a; border-color: var(--panel-border); color: var(--panel-text); text-shadow: none; }
+        .gemini-prompt-panel-button { min-height: 36px; border: 1px solid var(--panel-border); background: #12213a; color: var(--panel-text); padding: var(--btn-padding); border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: calc(var(--base-font-size) - 1px); font-weight: 650; cursor: pointer; transition: border-color .16s, background-color .16s, transform .16s; box-shadow: none; text-shadow: none; }
+        .gemini-prompt-panel-button:hover { border-color: var(--handle-color); background: #172a47; transform: translateY(-1px); }
         .gemini-prompt-panel-button:disabled { cursor: not-allowed; filter: brightness(0.6); }
         .gemini-prompt-panel-button.error { background: linear-gradient(to bottom, #dc3545, #c82333); border-color: #a71d2a; }
-        .copy-btn { background: linear-gradient(to bottom, var(--btn-green-grad-start), var(--btn-green-grad-end)); border-color: var(--btn-green-border); }
+        .copy-btn { background: linear-gradient(135deg, var(--btn-green-grad-start), var(--btn-green-grad-end)); border-color: var(--btn-green-border); color: #fff; }
         .prompt-group-container { display: flex; flex-direction: column; overflow-y: auto; padding-right: 5px; margin-right: -5px; flex-grow: 1; min-height: 0; }
         /* Condensed Mode */
         .gemini-prompt-panel.condensed { --panel-padding: 6px; --panel-gap: 6px; --btn-padding: 4px 8px; }
@@ -891,7 +891,8 @@
         .gemini-prompt-panel.condensed .prompt-category-content { gap: 5px; padding: 8px; }
         .gemini-prompt-panel.condensed .veo-prompt-card { padding: 8px; gap: 6px; }
         /* Prompt Buttons & Categories */
-        .prompt-button-wrapper { display: flex; flex-direction: column; background: #3a3a3e; border: 1px solid var(--panel-border); border-radius: 6px; cursor: grab; transition: box-shadow .2s, transform .2s; }
+        .prompt-button-wrapper { display: flex; flex-direction: column; background: #101d31; border: 1px solid var(--panel-border); border-radius: 10px; cursor: grab; transition: box-shadow .16s, transform .16s, border-color .16s; }
+        .prompt-button-wrapper:hover { border-color: rgba(56,189,248,0.48); box-shadow: 0 10px 24px rgba(2,6,23,0.24); }
         .prompt-button-wrapper.dragging { opacity: 0.5; background: #4a4a4e; }
         .prompt-button-wrapper.drag-over { border-bottom: 2px solid var(--pin-color); }
         .prompt-button { position:relative; display: flex; align-items: center; width: 100%; padding: 8px; gap: 8px; background: transparent; border: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
@@ -913,18 +914,17 @@
         .prompt-chain-badge { flex-shrink: 0; border: 1px solid var(--ai-color); color: var(--ai-color); border-radius: 4px; padding: 1px 5px; font-size: calc(var(--base-font-size) - 4px); font-weight: 700; }
         #custom-prompts-container { display:flex; flex-direction:column; max-height: none; }
         .search-add-container { padding: 0 0 10px; display: flex; flex-direction: column; gap: 8px; }
-        #prompt-search-input { width: 100%; background: var(--input-bg); color: var(--input-text); border-radius: 4px; padding: 6px 8px; font-size: calc(var(--base-font-size) - 1px); box-sizing: border-box; font-family: var(--panel-font); border: 2px solid transparent; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
-        #prompt-search-input:focus { outline: none; border-color: var(--handle-color); box-shadow: 0 0 8px var(--handle-color); }
-        #add-prompt-btn { border: none; color: white; position: relative; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08); background: linear-gradient(90deg, #4285F4, #DB4437, #F4B400, #0F9D58, #4285F4); background-size: 200% 100%; animation: google-gradient-animation 4s linear infinite; transition: transform 0.15s ease, box-shadow 0.15s ease; }
-        @keyframes google-gradient-animation { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+        #prompt-search-input { width: 100%; min-height: 38px; background: var(--input-bg); color: var(--input-text); border-radius: 10px; padding: 8px 10px; font-size: calc(var(--base-font-size) - 1px); box-sizing: border-box; font-family: var(--panel-font); border: 1px solid var(--input-border); transition: border-color 0.16s ease, box-shadow 0.16s ease; }
+        #prompt-search-input:focus { outline: 3px solid rgba(56,189,248,0.26); outline-offset: 1px; border-color: var(--handle-color); box-shadow: none; }
+        #add-prompt-btn { border-color: var(--btn-green-border); color: white; position: relative; overflow: hidden; box-shadow: none; background: linear-gradient(135deg, #2563eb, #0891b2); transition: transform 0.15s ease, border-color 0.15s ease; }
         #add-prompt-btn::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(255, 255, 255, 0) 100%); transform: translateX(-150%); transition: transform 0.6s ease; pointer-events: none; }
         #add-prompt-btn:hover::after { transform: translateX(150%); }
         #add-prompt-btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.08); }
         #favorites-category .prompt-category-header { background: linear-gradient(to right, #e8b31a, #d4a017); color: #1a1a1a; font-weight: bold; }
-        .prompt-category { border: 1px solid var(--panel-border); border-radius: 6px; margin-bottom: 10px; overflow: hidden; transition: all 0.2s; }
+        .prompt-category { border: 1px solid var(--panel-border); border-radius: 11px; margin-bottom: 10px; overflow: hidden; background: rgba(15,26,44,0.72); transition: border-color 0.16s, box-shadow 0.16s; }
         .prompt-category.dragging { opacity: 0.5; border-style: dashed; }
         .prompt-category.drag-over { border-bottom: 3px solid var(--pin-color); }
-        .prompt-category-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--panel-header-bg); cursor: pointer; font-weight: bold; font-size: calc(var(--base-font-size) - 1px); }
+        .prompt-category-header { display: flex; justify-content: space-between; align-items: center; padding: 9px 10px; background: var(--panel-header-bg); cursor: pointer; font-weight: 700; font-size: calc(var(--base-font-size) - 1px); }
         .prompt-category-header.draggable-header { cursor: grab; }
         .category-header-title { flex-grow: 1; }
         .category-header-controls { display: flex; align-items: center; gap: 4px; }
@@ -950,7 +950,7 @@
         .gemini-prompt-panel.right-side ~ .post-navigator .main-nav-arrow { right: calc(var(--panel-width, 320px) - (var(--nav-btn-size) / 2)); }
         .gemini-prompt-panel.right-side:not(.visible) ~ .post-navigator .main-nav-arrow { right: calc(var(--handle-width, 8px) - (var(--nav-btn-size) / 2)); }
         /* Modals, Toast, Settings */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); z-index: 10000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); z-index: 10000; display: none; align-items: center; justify-content: center; }
         .modal-content { font-family: var(--panel-font); background: var(--modal-content-bg); color: var(--panel-text); padding: 20px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 90%; max-width: 600px; position: relative; display: flex; flex-direction: column; max-height: 90vh; font-size: var(--base-font-size); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; flex-shrink: 0; }
         .modal-title { font-size: calc(var(--base-font-size) + 4px); font-weight: bold; }
@@ -1023,6 +1023,9 @@
         /* Prompt Preview Tooltip */
         .prompt-preview-tooltip { position: fixed; z-index: 10002; max-width: 350px; max-height: 200px; overflow-y: auto; background: var(--panel-bg); color: var(--panel-text); border: 1px solid var(--panel-border); border-radius: 6px; padding: 10px 12px; font-size: calc(var(--base-font-size) - 1px); line-height: 1.5; white-space: pre-wrap; word-break: break-word; box-shadow: 0 4px 16px rgba(0,0,0,0.4); pointer-events: none; opacity: 0; transition: opacity 0.15s ease-in; }
         .prompt-preview-tooltip.visible { opacity: 1; }
+        @media (prefers-reduced-motion: reduce) {
+            .gemini-prompt-panel, .panel-handle, .post-navigator, .gemini-prompt-panel-button, #add-prompt-btn::after { transition-duration: 0.01ms !important; animation: none !important; }
+        }
     `);
     }
 

@@ -1,0 +1,18 @@
+GeminiBuddy brand review
+Date: 2026-09-13
+
+Selected direction
+
+The chosen mark keeps the existing interlocking G and check idea, then reduces it to a clean blue and cyan monogram. It feels specific to a prompt companion without borrowing the Gemini star or Google's brand lockup.
+
+Why it works
+
+The silhouette survives toolbar size. The check shape suggests a prompt that is ready to run, while the open G gives the mark a recognizable initial. Cool blue and cyan fit the product UI and remain legible on dark or light surfaces.
+
+Rejected directions
+
+Two generated refinements were rejected because they placed the mark over a visible checkerboard. A checkerboard is not transparency and would look unfinished in the extension toolbar, README, and release page. Both attempts remain in logo-concepts for traceability.
+
+Production checks
+
+The selected master is a 1024 by 1024 PNG with a real alpha channel and fully transparent corner pixels. Browser assets were exported at 16, 32, 48, 64, 128, 256, 512, and 1024 pixels. The 32 and 128 pixel exports were inspected separately before selection.

@@ -1,6 +1,6 @@
 {
   "extensionName": { "message": "GeminiBuddy" },
-  "extensionDescription": { "message": "Gemini prompt panel with prompt workflows, model shortcuts, sharing, and sync." },
+  "extensionDescription": { "message": "Save, organize, sync, and run reusable prompts in Gemini or the browser side panel." },
   "actionOpenSidePanel": { "message": "Open GeminiBuddy side panel" },
   "optionsTitle": { "message": "GeminiBuddy Options" },
   "optionsHeading": { "message": "Options" },
