@@ -4,6 +4,16 @@
 
 [![Version](https://img.shields.io/badge/version-v54.0.1-blue)](https://github.com/SysAdminDoc/GeminiBuddy/releases/latest) [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE) [![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Edge%20%7C%20Firefox-5b8def)](#install) [![Userscript](https://img.shields.io/badge/userscript-Tampermonkey%20%7C%20Violentmonkey-16a34a)](#userscript)
 
+<p align="center">
+  <a href="https://ko-fi.com/X8K126YVER">
+    <img height="42" src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Buy me a coffee on Ko-fi" />
+  </a>
+</p>
+
+<p align="center">
+  <sub><em>If this project helps you, a coffee helps me keep working on it.</em></sub>
+</p>
+
 GeminiBuddy keeps reusable prompts beside Gemini, where they're easy to search, edit, and run. Use the in-page panel for fast prompt work or open the browser side panel when you want your library without covering the conversation.
 
 [Download the browser extension](https://github.com/SysAdminDoc/GeminiBuddy/releases/latest/download/geminibuddy-mv3-v54.0.1.zip) · [Install the userscript](https://raw.githubusercontent.com/SysAdminDoc/GeminiBuddy/main/GeminiBuddy.user.js) · [Report a problem](https://github.com/SysAdminDoc/GeminiBuddy/issues)
